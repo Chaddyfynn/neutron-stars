@@ -66,7 +66,7 @@ def rk4_step_till(grad, time, state, step_size, final_time):
     return times, state_arr
 
 
-c = 2
+c = 1
 k = 1
 w = k * c
 
