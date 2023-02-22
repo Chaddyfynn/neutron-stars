@@ -12,6 +12,7 @@ Last Updated:
          University of Manchester
 """
 import numpy as np
+import scipy.constants as con
 import matplotlib.pyplot as plt
 
 # Function for taking a single RK4 step
@@ -66,24 +67,20 @@ def rk4_step_till(grad, time, state, step_size, final_time):
     return times, state_arr
 
 
-c = 1
-k = 1
-w = k * c
+def eps(radius):
+    return 1
 
 
-def grad(time, state):
+def grad(radius, state):
+    dm_dr = 4 * np.pi * np.power(radius, 2) * eps(radius) / np.power(con.c, 2)
+    dp_dr = -1 * con.G * eps(radius) * state[0] / (np.power(con.c * radius, 2))
 
-    E = state[0]
-    E_dot = state[1]
-
-    E_dot_dot = -w**2 * E
-
-    return np.array([E_dot, E_dot_dot])  # gradient array
+    return np.array([dm_dr, dp_dr])  # gradient array
 
 
-# Initial state is [x_1, x_2, v_1, v_2] at time = 0
+# Initial state is [m, p] at time = 0
 t_0 = 0
-state_0 = np.array([1, 1])  # [E, E_dot]
+state_0 = np.array([0, 1])  # [Mass, Pressure]
 
 times, states = rk4_n_steps(grad, t_0, state_0, 0.01, 1_000)
 
