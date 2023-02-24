@@ -95,9 +95,9 @@ R0 = (con.G*M0)/(c**2) * 0.001
 K = 1e-29
 GAMMA = 5/3
 
-times, states = rk4_n_steps(grad, t_0, state_0, 1, 12_700)
-print(times)
-print(states)
+radii, states = rk4_n_steps(grad, t_0, state_0, 1, 12_700)
+file = [radii, states]
+np.savetxt
 
 # Prepare two side by side plots
 fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
@@ -107,8 +107,8 @@ ax2 = ax1.twinx()
 ax1.set(xlabel="Radius r, km")
 ax2.set(ylabel="Mass, Solar Masses")
 ax1.set(ylabel="Pressure, dyne/cm^2")
-ax2.plot(times, states[:, 0], color="red", label="Mass")
-ax1.plot(times, states[:, 1], linestyle="--", color="blue", label="Pressure")
+ax2.plot(radii, states[:, 0], color="red", label="Mass")
+ax1.plot(radii, states[:, 1], linestyle="--", color="blue", label="Pressure")
 ax1.legend()
 ax2.legend()
 
