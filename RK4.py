@@ -67,10 +67,6 @@ def rk4_step_till(grad, time, state, step_size, final_time):
     return times, state_arr
 
 
-def eps(radius, state):
-    return np.power(state[1]/K, 1/GAMMA)
-
-
 def grad(radius, state):
     m, p = state
     dm_dr = ((4 * np.pi * np.power(radius, 2)) /
@@ -90,45 +86,40 @@ def grad(radius, state):
 
 # Initial state is [m, p] at time = 0
 t_0 = 1
-state_0 = np.array([0, 2e22])  # [Mass, Pressure]
-
-Z = 1
-M_N = 1e-27
-A = 1
+state_0 = np.array([0, 2.2e22])  # [Mass, Pressure]
 
 c = 3e8
 M0 = 1.989e30
-R0 = (con.G*M0)/(c**2)
+R0 = (con.G*M0)/(c**2) * 0.001
 
-
-# K = np.power(con.hbar, 2) / (15 * np.power(np.pi, 2) *con.m_e) \
-#     (3 * np.power(np.pi, 2) * Z / (M_N * np.power(con.c, 2) * A))
-# print(K)
-K = 1e-22
+K = 1e-29
 GAMMA = 5/3
 
-times, states = rk4_n_steps(grad, t_0, state_0, 10, 1200)
+times, states = rk4_n_steps(grad, t_0, state_0, 1, 12_700)
 print(times)
 print(states)
 
 # Prepare two side by side plots
-fig, [ax1, ax3] = plt.subplots(nrows=1, ncols=2, figsize=(20, 10))
+fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
 ax2 = ax1.twinx()
 
 # Axis 1: Show the different state variables against time
-ax1.set(xlabel="Radius r, meters")
-ax1.set(ylabel="Mass, Solar Masses")
-ax2.set(ylabel="Pressure, dyne/cm^2")
-ax1.plot(times, states[:, 0], color="red", label="Mass")
-ax2.plot(times, states[:, 1], linestyle="--", label="Pressure")
+ax1.set(xlabel="Radius r, km")
+ax2.set(ylabel="Mass, Solar Masses")
+ax1.set(ylabel="Pressure, dyne/cm^2")
+ax2.plot(times, states[:, 0], color="red", label="Mass")
+ax1.plot(times, states[:, 1], linestyle="--", color="blue", label="Pressure")
 ax1.legend()
 ax2.legend()
 
 # Axis 2: Show the x,y plane
-ax3.set(xlabel="Radius r, meters", ylabel="Mass, kg")
-ax3.plot(states[:, 0], states[:, 1], label="Mass 1")
+#ax3.set(xlabel="Mass", ylabel="Pressure")
+#ax3.plot(states[:, 0], states[:, 1], label="Mass 1")
 
 
 # Show and close the plot
+ax1.grid()
+# ax3.grid()
+plt.tight_layout()
 plt.show()
 plt.clf()
