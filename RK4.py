@@ -18,6 +18,23 @@ import matplotlib.pyplot as plt
 # Function for taking a single RK4 step
 # The grad function must be of form grad(time (float), state (numpy array of floats)) -> (numpy array of floats)
 
+# Initial state is [m, p] at time = 0
+r_0 = 1
+state_0 = np.array([0, 2.2e22])  # [Mass, Pressure]
+
+c = 3e8
+M0 = 1.989e30
+R0 = (con.G*M0)/(c**2) * 0.001
+
+K = 1e-29
+GAMMA = 5/3
+
+def main():
+    radii, states = rk4(grad, r_0, state_0, 1, 12_700)
+    if plot(radii, states) == 0:
+        print("Success")
+    else:
+        print("Failure")
 
 def rk4_step(grad, time, state, step_size):
     # Calculate various midpoint k states
@@ -31,7 +48,7 @@ def rk4_step(grad, time, state, step_size):
 # Function for taking n steps using RK4
 
 
-def rk4_n_steps(grad, time, state, step_size, n_steps):
+def rk4(grad, time, state, step_size, n_steps):
     # Prepare numpy arrays for storing data
     times = np.array([time, ])
     state_arr = np.empty(shape=(0, state.size))
@@ -76,44 +93,29 @@ def grad(radius, state):
 
     return np.array([dm_dr, dp_dr])  # gradient array
 
+def plot(radii, states):    
+    # Prepare two side by side plots
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
+    ax2 = ax1.twinx()
+    
+    # Axis 1: Show the different state variables against time
+    ax1.set(xlabel="Radius r, km")
+    ax2.set(ylabel="Mass, Solar Masses")
+    ax1.set(ylabel="Pressure, dyne/cm^2")
+    ax2.plot(radii, states[:, 0], color="red", label="Mass")
+    ax1.plot(radii, states[:, 1], linestyle="--",
+             color="blue", label="Pressure")
+    ax1.legend()
+    ax2.legend()
 
-# Initial state is [m, p] at time = 0
-t_0 = 1
-state_0 = np.array([0, 2.2e22])  # [Mass, Pressure]
-
-c = 3e8
-M0 = 1.989e30
-R0 = (con.G*M0)/(c**2) * 0.001
-
-K = 1e-29
-GAMMA = 5/3
-
-radii, states = rk4_n_steps(grad, t_0, state_0, 1, 12_700)
-file = [radii, states]
-np.savetxt
-
-# Prepare two side by side plots
-fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
-ax2 = ax1.twinx()
-
-# Axis 1: Show the different state variables against time
-ax1.set(xlabel="Radius r, km")
-ax2.set(ylabel="Mass, Solar Masses")
-ax1.set(ylabel="Pressure, dyne/cm^2")
-ax2.plot(radii, states[:, 0], color="red", label="Mass")
-ax1.plot(radii, states[:, 1], linestyle="--",
-         color="blue", label="Pressure")
-ax1.legend()
-ax2.legend()
-
-# Axis 2: Show the x,y plane
-# ax3.set(xlabel="Mass", ylabel="Pressure")
-# ax3.plot(states[:, 0], states[:, 1], label="Mass 1")
-
-
-# Show and close the plot
-ax1.grid()
-# ax3.grid()
-plt.tight_layout()
-plt.show()
-plt.clf()
+    # Show and close the plot
+    ax1.grid()
+    # ax3.grid()
+    plt.tight_layout()
+    plt.savefig("Figure.png", dpi=1000)
+    plt.show()
+    plt.clf()
+    return 0
+    
+if __name__ == "__main__":
+   main()
