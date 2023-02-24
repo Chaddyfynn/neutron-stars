@@ -74,13 +74,6 @@ def grad(radius, state):
     dp_dr = -1 * (R0/(np.power(radius, 2))) * \
         (p/K)**(1/GAMMA) * m
 
-    '''
-    m, p = state
-    dm_dr = ((4 * np.pi * np.power(radius, 2)) /
-             (M0*c**2)) * (p/K)**(1/GAMMA)
-    dp_dr = -1 * (R0/(np.power(radius, 2))) * \
-        (p/K)**(1/GAMMA) * m
-    '''
     return np.array([dm_dr, dp_dr])  # gradient array
 
 
@@ -100,7 +93,7 @@ file = [radii, states]
 np.savetxt
 
 # Prepare two side by side plots
-fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
+fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
 ax2 = ax1.twinx()
 
 # Axis 1: Show the different state variables against time
@@ -108,13 +101,14 @@ ax1.set(xlabel="Radius r, km")
 ax2.set(ylabel="Mass, Solar Masses")
 ax1.set(ylabel="Pressure, dyne/cm^2")
 ax2.plot(radii, states[:, 0], color="red", label="Mass")
-ax1.plot(radii, states[:, 1], linestyle="--", color="blue", label="Pressure")
+ax1.plot(radii, states[:, 1], linestyle="--",
+         color="blue", label="Pressure")
 ax1.legend()
 ax2.legend()
 
 # Axis 2: Show the x,y plane
-#ax3.set(xlabel="Mass", ylabel="Pressure")
-#ax3.plot(states[:, 0], states[:, 1], label="Mass 1")
+# ax3.set(xlabel="Mass", ylabel="Pressure")
+# ax3.plot(states[:, 0], states[:, 1], label="Mass 1")
 
 
 # Show and close the plot
