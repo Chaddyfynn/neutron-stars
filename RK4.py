@@ -12,10 +12,30 @@ Last Updated:
          University of Manchester
 """
 import numpy as np
+import scipy.constants as con
 import matplotlib.pyplot as plt
 
 # Function for taking a single RK4 step
 # The grad function must be of form grad(time (float), state (numpy array of floats)) -> (numpy array of floats)
+
+# Initial state is [m, p] at time = 0
+r_0 = 1
+state_0 = np.array([0, 2.2e22])  # [Mass, Pressure]
+
+c = 3e8
+M0 = 1.989e30
+R0 = (con.G*M0)/(c**2) * 0.001
+
+K = 1e-29
+GAMMA = 5/3
+
+
+def main():
+    radii, states = rk4(grad, r_0, state_0, 1, 12_700)
+    if plot(radii, states) == 0:
+        print("Success")
+    else:
+        print("Failure")
 
 
 def rk4_step(grad, time, state, step_size):
@@ -30,7 +50,7 @@ def rk4_step(grad, time, state, step_size):
 # Function for taking n steps using RK4
 
 
-def rk4_n_steps(grad, time, state, step_size, n_steps):
+def rk4(grad, time, state, step_size, n_steps):
     # Prepare numpy arrays for storing data
     times = np.array([time, ])
     state_arr = np.empty(shape=(0, state.size))
@@ -66,41 +86,40 @@ def rk4_step_till(grad, time, state, step_size, final_time):
     return times, state_arr
 
 
-c = 1
-k = 1
-w = k * c
+def grad(radius, state):
+    m, p = state
+    dm_dr = ((4 * np.pi * np.power(radius, 2)) /
+             (M0*c**2)) * np.power((p/K), 1/GAMMA)
+    dp_dr = -1 * (R0/(np.power(radius, 2))) * \
+        (p/K)**(1/GAMMA) * m
+
+    return np.array([dm_dr, dp_dr])  # gradient array
 
 
-def grad(time, state):
+def plot(radii, states):
+    # Prepare two side by side plots
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
+    ax2 = ax1.twinx()
 
-    E = state[0]
-    E_dot = state[1]
+    # Axis 1: Show the different state variables against time
+    ax1.set(xlabel="Radius r, km")
+    ax2.set(ylabel="Mass, Solar Masses")
+    ax1.set(ylabel="Pressure, dyne/cm^2")
+    ax2.plot(radii, states[:, 0], color="red", label="Mass")
+    ax1.plot(radii, states[:, 1], linestyle="--",
+             color="blue", label="Pressure")
+    ax1.legend()
+    ax2.legend()
 
-    E_dot_dot = -w**2 * E
-
-    return np.array([E_dot, E_dot_dot])  # gradient array
-
-
-# Initial state is [x_1, x_2, v_1, v_2] at time = 0
-t_0 = 0
-state_0 = np.array([1, 1])  # [E, E_dot]
-
-times, states = rk4_n_steps(grad, t_0, state_0, 0.01, 1_000)
-
-# Prepare two side by side plots
-fig, [ax1, ax2] = plt.subplots(nrows=1, ncols=2, figsize=(16, 7))
-
-# Axis 1: Show the different state variables against time
-ax1.set(xlabel="t")
-ax1.plot(times, states[:, 0], label="x_1")
-ax1.plot(times, states[:, 1], linestyle="--", label="x_2")
-ax1.legend()
-
-# Axis 2: Show the x,y plane
-ax2.set(xlabel="x", ylabel="v")
-ax2.plot(states[:, 0], states[:, 1], label="Mass 1")
+    # Show and close the plot
+    ax1.grid()
+    # ax3.grid()
+    plt.tight_layout()
+    plt.savefig("Figure.png", dpi=1000)
+    plt.show()
+    plt.clf()
+    return 0
 
 
-# Show and close the plot
-plt.show()
-plt.clf()
+if __name__ == "__main__":
+    main()
