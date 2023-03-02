@@ -13,7 +13,7 @@ R_0 = 1  # Start Radius
 # Boundary Conditions at R=R_0 [Mass, Pressure]
 STATE_0 = np.array([0, 2.2e22])
 STEP = 1  # Step Size
-NUM = 12_700  # Number of Steps
+NUM = 120_700  # Number of Steps
 
 c = con.c  # Speed of Light, m/s
 M_SUN = 1.989e30  # Mass of sun, kg

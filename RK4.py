@@ -11,9 +11,20 @@ Last Updated:
 @author: Department of Physics and Astronomy,
          University of Manchester
 """
-import numpy as np
-import scipy.constants as con
+from pathlib import Path
 import matplotlib.pyplot as plt
+import scipy.constants as con
+import numpy as np
+import time
+print("""
+___________________________
+  ___ _  ___ _
+ | _ \ |/ / | |
+ |   / ' <|_  _|
+ |_|_\_|\_\ |_|
+___________________________
+
+      """)
 
 # Function for taking a single RK4 step
 # The grad function must be of form grad(time (float), state (numpy array of floats)) -> (numpy array of floats)
@@ -29,12 +40,16 @@ R0 = (con.G*M0)/(c**2) * 0.001
 K = 1e-29
 GAMMA = 5/3
 
+INIT_PATH = Path('./RK4_Output.txt')
+
+
 def main():
     radii, states = rk4(grad, r_0, state_0, 1, 12_700)
     if plot(radii, states) == 0:
-        print("Success")
+        print("Plotting Successful...")
     else:
-        print("Failure")
+        print("Plotting Failed!")
+
 
 def rk4_step(grad, time, state, step_size):
     # Calculate various midpoint k states
@@ -93,29 +108,56 @@ def grad(radius, state):
 
     return np.array([dm_dr, dp_dr])  # gradient array
 
-def plot(radii, states):    
+
+def plot(radii, states):
+    print("Plotting...")
     # Prepare two side by side plots
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     ax2 = ax1.twinx()
-    
+
     # Axis 1: Show the different state variables against time
-    ax1.set(xlabel="Radius r, km")
-    ax2.set(ylabel="Mass, Solar Masses")
-    ax1.set(ylabel="Pressure, dyne/cm^2")
+    ax1.set(xlabel="Radius")
+    ax2.set(ylabel="Mass")
+    ax1.set(ylabel="Pressure")
     ax2.plot(radii, states[:, 0], color="red", label="Mass")
     ax1.plot(radii, states[:, 1], linestyle="--",
              color="blue", label="Pressure")
     ax1.legend()
     ax2.legend()
+    # ax1.set_ylim(bottom=0)
 
     # Show and close the plot
     ax1.grid()
     # ax3.grid()
     plt.tight_layout()
-    plt.savefig("Figure.png", dpi=1000)
+    print("Saving Figure...")
+    file = path_checker("Figure", ".png")
+    plt.savefig(file, dpi=1000)
     plt.show()
     plt.clf()
     return 0
-    
+
+
+def path_checker(ideal_filename, extension):
+    filename = ideal_filename
+    address = "./RK4_Output/"  # Folder Address
+    number = int(0)
+    path = Path(address + filename + extension)  # Initial Path
+
+    while path.is_file():
+        number = number + int(1)
+        number_append = str(number)
+        filename = ideal_filename + '_' + number_append
+        path = Path(address + filename + extension)
+    return address + filename + extension
+
+
+def save(radii, states, ideal_filename):
+    print("Saving Array...")
+    output_array = np.c_[radii, states]  # Output Array
+    file = path_checker(ideal_filename, ".txt")
+    np.savetxt(file, output_array, delimiter=",", footer=str(time.ctime()))
+
+
 if __name__ == "__main__":
-   main()
+    main()
