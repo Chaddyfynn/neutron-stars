@@ -9,36 +9,43 @@ import numpy as np
 import scipy.constants as con
 import RK4 as solve
 
-R_0 = 1  # Start Radius
-# Boundary Conditions at R=R_0 [Mass, Pressure]
-STATE_0 = np.array([0, 2.2e22])
-STEP = 1  # Step Size
-NUM = 120_700  # Number of Steps
+R_0 = 0.001
+STATE_0 = np.array([0, 2.2e22/10])  # [Mass, Pressure]
+STEP = 1000
+NUM = 13000
 
-c = con.c  # Speed of Light, m/s
-M_SUN = 1.989e30  # Mass of sun, kg
-R_SCHW = (con.G*M_SUN)/(c**2) * 0.001  # Solar Schwarzschild Radius, km
+MIN_PRESSURE = 1
+MAX_PRESSURE = 5e21
+NUM_STEPS = 100
+PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
 
-M_E = 9.1093837e-31  # Electron Mass, kg
-M_N = 1.67492749804-27  # Neutron Mass, kg
-A = 2
-Z = 1
+
+M0 = 1.98847e30
+
+R0 = (con.G*M0)/(con.c**2)
+
+K = con.hbar**2/(15*np.pi**2*con.m_e) * \
+    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)
+
 GAMMA = 5/3
 
-K = 6.821915394e-21  # Pressure Constant
+FILENAME = "White_Dwarf"
 
 
 def main():
-    radii, states = solve.rk4(grad, R_0, STATE_0, STEP, NUM)
-    solve.plot(radii, states)
+    pressures, radii, masses = solve.iterate(grad, R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, PRESSURE_STEP, FILENAME)
+    solve.plot_pressure(pressures, radii, masses, FILENAME)
+    states = np.c_[radii, masses]
+    solve.save(pressures, states, FILENAME)
+    return None
 
 
 def grad(radius, state):
     m, p = state
-    dm_dr = ((4 * np.pi * np.power(radius, 2)) /
-             (M_SUN*c**2)) * np.power((p/K), 1/GAMMA)
-    dp_dr = -1 * (R_SCHW/(np.power(radius, 2))) * \
-        np.power((p/K), (1/GAMMA)) * m
+    dm_dr = ((4 * np.pi * np.power((radius), 2) *
+             np.power((p/K), 1/GAMMA))/(M0*(con.c)**2))
+    dp_dr = -1 * (R0*m/(np.power((radius), 2))) * \
+        np.power((p/K), (1/GAMMA))
 
     return np.array([dm_dr, dp_dr])  # gradient array
 
