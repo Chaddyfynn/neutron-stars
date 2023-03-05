@@ -19,21 +19,28 @@ import matplotlib.pyplot as plt
 # The grad function must be of form grad(time (float), state (numpy array of floats)) -> (numpy array of floats)
 
 # Initial state is [m, p] at time = 0
-r_0 = 1
-state_0 = np.array([0, 2.2e22])  # [Mass, Pressure]
+r_0 = 0.001
+state_0 = np.array([0, 2.2e22/10])  # [Mass, Pressure]
 
-c = 3e8
-M0 = 1.989e30
-R0 = (con.G*M0)/(c**2) * 0.001
 
-K = 1e-29
+M0 = 1.98847e30
+
+R0 = (con.G*M0)/(con.c**2)
+
+K = con.hbar**2/(15*np.pi**2*con.m_e) * \
+    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)
+
 GAMMA = 5/3
 
 
 def main():
-    radii, states = rk4(grad, r_0, state_0, 1, 12_700)
+    radii, states = rk4(grad, r_0, state_0, 1000, 13000)
     if plot(radii, states) == 0:
         print("Success")
+        d = np.where(states[:, 1] == min(states[:, 1]))
+        index = d[0][0]
+        print('White dwarf radius is', radii[index]/1000, 'km.')
+        print('White dwarf mass is', states[index, 0])
     else:
         print("Failure")
 
@@ -88,10 +95,10 @@ def rk4_step_till(grad, time, state, step_size, final_time):
 
 def grad(radius, state):
     m, p = state
-    dm_dr = ((4 * np.pi * np.power(radius, 2)) /
-             (M0*c**2)) * np.power((p/K), 1/GAMMA)
-    dp_dr = -1 * (R0/(np.power(radius, 2))) * \
-        (p/K)**(1/GAMMA) * m
+    dm_dr = ((4 * np.pi * np.power((radius), 2) *
+             np.power((p/K), 1/GAMMA))/(M0*(con.c)**2))
+    dp_dr = -1 * (R0*m/(np.power((radius), 2))) * \
+        np.power((p/K), (1/GAMMA))
 
     return np.array([dm_dr, dp_dr])  # gradient array
 
@@ -105,8 +112,8 @@ def plot(radii, states):
     ax1.set(xlabel="Radius r, km")
     ax2.set(ylabel="Mass, Solar Masses")
     ax1.set(ylabel="Pressure, dyne/cm^2")
-    ax2.plot(radii, states[:, 0], color="red", label="Mass")
-    ax1.plot(radii, states[:, 1], linestyle="--",
+    ax2.plot(radii/1000, states[:, 0], color="red", label="Mass")
+    ax1.plot(radii/1000, states[:, 1]*10, linestyle="--",
              color="blue", label="Pressure")
     ax1.legend()
     ax2.legend()
