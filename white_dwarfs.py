@@ -7,36 +7,41 @@ Created on Fri Feb 24 18:27:59 2023
 
 import numpy as np
 import scipy.constants as con
-import RK4 as solve
+import calculator as solve
 
-R_0 = 0.001
-STATE_0 = np.array([0, 2.2e22/10])  # [Mass, Pressure]
-STEP = 1000
-NUM = 13000
+# RK4 / Calculator Settings
+MULTIPLIER = 2  # Step and Number Multiplier (Higher =>  More Resolution)
+R_0 = 0.001  # Initial Condition Radius, m
+STEP = 1000 / MULTIPLIER  # Step, dx
+NUM = 17000 * MULTIPLIER  # Number of Steps
 
-MIN_PRESSURE = 1
-MAX_PRESSURE = 5e21
-NUM_STEPS = 100
+# System Settings
+MIN_PRESSURE = 1  # Minimum Central Pressure, Pa
+MAX_PRESSURE = 5e21  # Maximum Central Pressure, Pa
+NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
 
+# Astronomical Constant
+M0 = 1.98847e30  # Solar Mass, kg
+R0 = (con.G*M0)/(con.c**2)  # Solar Schwarzchild Radius, m
 
-M0 = 1.98847e30
-
-R0 = (con.G*M0)/(con.c**2)
-
+# System Constants
 K = con.hbar**2/(15*np.pi**2*con.m_e) * \
-    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)
+    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)  # Pressure Constant, No Unis
+GAMMA = 5/3  # Polytropic Index, No Units
 
-GAMMA = 5/3
-
-FILENAME = "White_Dwarf"
+# Save and Graph Settings
+FILENAME = "White_Dwarf"  # Graph and Text File Desired Name
+PLOT_TIME = True  # Plot Function Evaluation Times vs Pressure? (Boolean)
+METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
 
 
 def main():
-    pressures, radii, masses = solve.iterate(grad, R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, PRESSURE_STEP, FILENAME)
+    pressures, radii, masses = solve.iterate(
+        grad, R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, PRESSURE_STEP, FILENAME, PLOT_TIME)
     solve.plot_pressure(pressures, radii, masses, FILENAME)
     states = np.c_[radii, masses]
-    solve.save(pressures, states, FILENAME)
+    solve.save(pressures, states, FILENAME, METADATA)
     return None
 
 

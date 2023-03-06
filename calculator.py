@@ -13,14 +13,11 @@ Last Updated:
 """
 from pathlib import Path
 import numpy as np
-import scipy.constants as con
 import matplotlib.pyplot as plt
 import time as tm
 
 # Function for taking a single RK4 step
 # The grad function must be of form grad(time (float), state (numpy array of floats)) -> (numpy array of floats)
-
-INIT_PATH = Path('./RK4_Output.txt')
 
 
 def main():
@@ -77,6 +74,7 @@ def rk4_step_till(grad, time, state, step_size, final_time):
 
 def plot(radii, states, ideal_filename):
     # Prepare two side by side plots
+    print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     ax2 = ax1.twinx()
 
@@ -95,6 +93,7 @@ def plot(radii, states, ideal_filename):
     # ax3.grid()
     plt.tight_layout()
     filename = path_checker(ideal_filename, ".png")
+    print("Saving figure...")
     plt.savefig(filename, dpi=1000)
     plt.show()
     plt.clf()
@@ -103,6 +102,7 @@ def plot(radii, states, ideal_filename):
 
 def plot_pressure(pressures, radii, masses, ideal_filename):
     # Prepare two side by side plots
+    print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     ax2 = ax1.twinx()
 
@@ -120,7 +120,29 @@ def plot_pressure(pressures, radii, masses, ideal_filename):
     ax1.grid()
     # ax3.grid()
     plt.tight_layout()
+    print("Saving figure...")
     filename = path_checker(ideal_filename, ".png")
+    plt.savefig(filename, dpi=1000)
+    plt.show()
+    plt.clf()
+    return 0
+
+
+def plot_times(pressures, times):
+    # Prepare two side by side plots
+    print("Plotting...")
+    filename = path_checker("Function_Time", ".png")
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
+
+    # Axis 1: Show the different state variables against time
+    ax1.set(xlabel="Pressure, Pa")
+    ax1.set(ylabel="Function Time, s")
+    ax1.plot(pressures, times, '.', color="blue")
+    # Show and close the plot
+    ax1.grid()
+    # ax3.grid()
+    plt.tight_layout()
+    print("Saving figure...")
     plt.savefig(filename, dpi=1000)
     plt.show()
     plt.clf()
@@ -129,7 +151,7 @@ def plot_pressure(pressures, radii, masses, ideal_filename):
 
 def path_checker(ideal_filename, extension):
     filename = ideal_filename
-    address = "./RK4_Output/"  # Folder Address
+    address = "./saves/"  # Folder Address
     number = int(0)
     path = Path(address + filename + extension)  # Initial Path
 
@@ -141,12 +163,16 @@ def path_checker(ideal_filename, extension):
     return address + filename + extension
 
 
-def save(radii, states, ideal_filename):
+def save(radii, states, ideal_filename, metadata):
     print("Saving Array...")
     output_array = np.c_[radii, states]  # Output Array
     file = path_checker(ideal_filename, ".txt")
-    np.savetxt(file, output_array, delimiter=",", header=str(tm.ctime()))
-    
+    output_meta = str("")
+    for meta in metadata:
+        output_meta = output_meta + ", " + str(meta)
+    np.savetxt(file, output_array, delimiter=",",
+               header=str(tm.ctime()), footer=output_meta)
+
 
 def root(radii, states):
     index = np.where(states[:, 1] == min(states[:, 1]))[0][0]
@@ -154,24 +180,33 @@ def root(radii, states):
     mass = states[index, 0]
     return radius, mass
 
-def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, filename):
+
+def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, filename, plot_time):
+    whole_start = tm.time()
     pressure = min_pressure
-    radii_output = np.zeros((0,1))
-    mass_output = np.zeros((0,1))
-    pressures = np.zeros((0,1))
+    radii_output = np.zeros((0, 1))
+    mass_output = np.zeros((0, 1))
+    pressures = np.zeros((0, 1))
+    times = np.zeros((0, 1))
     while pressure < max_pressure:
-        print("Calculating at pressure ", pressure, " ...")
+        print("Calculating at pressure ", pressure, "Pa ...")
+        start_time = tm.time()
         state_0 = np.array([0, pressure])
         pressures = np.append(pressures, pressure)
-        radii, states = rk4(grad, r_0, state_0, step, num)  
+        radii, states = rk4(grad, r_0, state_0, step, num)
         radius, mass = root(radii/1000, states)
         radii_output = np.append(radii_output, radius)
         mass_output = np.append(mass_output, mass)
         pressure = pressure + pressure_step
-        print("Finished calculation...")
-        
+        function_time = tm.time() - start_time
+        times = np.append(times, function_time)
+        print("Finished calculation in ", round(function_time, 1), "s ...")
+    whole_time = tm.time() - whole_start
+    print("Computation finished in ", round(whole_time, 1), "s")
+    if plot_time:
+        plot_times(pressures, times)
+
     return pressures, radii_output, mass_output
-        
 
 
 if __name__ == "__main__":

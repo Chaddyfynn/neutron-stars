@@ -12,10 +12,9 @@ Last Updated:
 
 @author: Charlie Fynn Perkins, UID: 10839865 0
 """
-import RK4 as solve
+import calculator as solve
 import scipy.constants as con
 import numpy as np
-import ideal_filename as check
 from scipy.integrate import solve_ivp
 
 """
@@ -68,7 +67,7 @@ def main():
     # if solve.save(radii, states, FILENAME) == 0:
     #     print("Save Successful")
     output = solve_ivp(paper, INTERVAL, STATE_0, t_eval=SPAN)
-    filename = check.filename("scipy_output", ".txt")
+    filename = solve.path_checker("scipy_output", ".txt")
     np.savetxt(filename, output, delimiter=",")
 
 
