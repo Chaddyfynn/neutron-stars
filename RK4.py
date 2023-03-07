@@ -39,8 +39,10 @@ def main():
         print("Success")
         d = np.where(states[:, 1] == min(states[:, 1]))
         index = d[0][0]
-        print('White dwarf radius is', radii[index]/1000, 'km.')
-        print('White dwarf mass is', states[index, 0])
+        R = radii[index]/1000
+        M = states[index, 0]
+        print('White dwarf radius is', R, 'km.')
+        print('White dwarf mass is', M, '.')
     else:
         print("Failure")
 
@@ -126,6 +128,9 @@ def plot(radii, states):
     plt.show()
     plt.clf()
     return 0
+
+# def p0_plot():
+ #   p0_array =
 
 
 if __name__ == "__main__":
