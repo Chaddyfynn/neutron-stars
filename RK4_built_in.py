@@ -8,7 +8,6 @@ Created on Tue Mar  7 11:42:04 2023
 import numpy as np
 import scipy.constants as con
 import scipy.integrate as sci_int
-import matplotlib.pyplot as plt
 
 
 r_0 = 0.001
@@ -35,7 +34,7 @@ def main():
     radius = solution['t']
     state = solution['y']
 
-    plot(radius, state)
+    return radius, state
 
 
 def grad(radius, state):
@@ -46,31 +45,6 @@ def grad(radius, state):
         np.power((p/K), (1/GAMMA))
 
     return np.array([dm_dr, dp_dr])
-
-
-def plot(radii, states):
-    # Prepare two side by side plots
-    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
-    ax2 = ax1.twinx()
-
-    # Axis 1: Show the different state variables against time
-    ax1.set(xlabel="Radius r, km")
-    ax2.set(ylabel="Mass, Solar Masses")
-    ax1.set(ylabel="Pressure, dyne/cm^2")
-    ax2.plot(radii/1000, states[0], color="red", label="Mass")
-    ax1.plot(radii/1000, states[1]*10, linestyle="--",
-             color="blue", label="Pressure")
-    ax1.legend()
-    ax2.legend()
-
-    # Show and close the plot
-    ax1.grid()
-    # ax3.grid()
-    plt.tight_layout()
-    plt.savefig("Figure.png", dpi=1000)
-    plt.show()
-    plt.clf()
-    return 0
 
 
 main()
