@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  7 11:42:04 2023
+Created on Tue Mar  7 13:01:37 2023
 
 @author: Roryt
 """
@@ -13,7 +13,7 @@ import scipy.integrate as sci_int
 r_0 = 0.001
 r_max = 12000
 t_span = [0.001, 12000000]
-state_0 = np.array([0, 5.62e25/10])  # [Mass, Pressure]
+state_initial = 5.62e25/10
 
 
 M0 = 1.98847e30
@@ -28,15 +28,21 @@ K = (con.hbar*con.c)/(12*np.pi**2) * ((3*np.pi**2)/(2*con.m_n*con.c**2))**(4/3)
 GAMMA = 4/3
 
 
-def main():
-    solution = sci_int.solve_ivp(grad, t_span, state_0, method='RK45',
+def main(state_0):
+    solution = sci_int.solve_ivp(grad, t_span, np.array([0, state_0]), method='RK45',
                                  t_eval=None, dense_output=False, events=None,
                                  vectorized=True, args=None, max_step=1000)
 
     radius = solution['t']
     state = solution['y']
 
-    return radius, state
+    e = np.where(state[1] == min(state[1]))
+    i = e[0][0]
+    r_val = radius[i]
+    m_val = state[0][i]
+    #p_val = state[1][i]
+
+    return r_val, m_val
 
 
 def grad(radius, state):
@@ -47,6 +53,3 @@ def grad(radius, state):
         np.power((p/K), (1/GAMMA))
 
     return np.array([dm_dr, dp_dr])
-
-
-main()
