@@ -100,7 +100,7 @@ def plot(radii, states, ideal_filename):
     return 0
 
 
-def plot_pressure(pressures, radii, masses, ideal_filename):
+def plot_pressure(pressures, radii, masses, ideal_filename, crop):
     # Prepare two side by side plots
     print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
@@ -113,6 +113,8 @@ def plot_pressure(pressures, radii, masses, ideal_filename):
     ax2.plot(pressures, masses, color="red", label="Mass")
     ax1.plot(pressures, radii, linestyle="--",
              color="blue", label="Radius")
+    ax1.set_xlim(left=crop)
+    ax2.set_xlim(left=crop)
     ax1.legend()
     ax2.legend()
 
@@ -188,7 +190,8 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, fil
     mass_output = np.zeros((0, 1))
     pressures = np.zeros((0, 1))
     times = np.zeros((0, 1))
-    iterations = np.linspace(0, (max_pressure - min_pressure)/pressure_step, int((max_pressure - min_pressure)/pressure_step))
+    iterations = np.linspace(0, (max_pressure - min_pressure) /
+                             pressure_step, int((max_pressure - min_pressure)/pressure_step))
     while pressure < max_pressure:
         print("Calculating at pressure ", pressure, "Pa ...")
         start_time = tm.time()

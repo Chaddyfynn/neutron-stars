@@ -13,11 +13,12 @@ import calculator as solve
 MULTIPLIER = 2  # Step and Number Multiplier (Higher =>  More Resolution)
 R_0 = 0.001  # Initial Condition Radius, m
 STEP = 1000 / MULTIPLIER  # Step, dx
-NUM = 17000 * MULTIPLIER  # Number of Steps
+NUM = 20000 * MULTIPLIER  # Number of Steps
 
 # System Settings
+STATE_0 = np.array([0, 5.62e24])
 MIN_PRESSURE = 1  # Minimum Central Pressure, Pa
-MAX_PRESSURE = 10e21  # Maximum Central Pressure, Pa
+MAX_PRESSURE = 5e25  # Maximum Central Pressure, Pa
 NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
 
@@ -33,15 +34,22 @@ GAMMA = 4/3  # Polytropic Index, No Units
 # Save and Graph Settings
 FILENAME = "White_Dwarf_Rel_Polytrope"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
+FULL_COMPUTATION = True
+CROP = 1e23
 METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
 
 
 def main():
-    pressures, radii, masses = solve.iterate(
-        grad, R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, PRESSURE_STEP, FILENAME, PLOT_TIME)
-    solve.plot_pressure(pressures, radii, masses, FILENAME)
-    states = np.c_[radii, masses]
-    solve.save(pressures, states, FILENAME, METADATA)
+    if FULL_COMPUTATION:
+        pressures, radii, masses = solve.iterate(
+            grad, R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, PRESSURE_STEP, FILENAME, PLOT_TIME)
+        solve.plot_pressure(pressures, radii, masses, FILENAME, CROP)
+        states = np.c_[radii, masses]
+        solve.save(pressures, states, FILENAME, METADATA)
+    else:
+        radii, states = solve.rk4(grad, R_0, STATE_0, STEP, NUM)
+        solve.plot(radii, states, FILENAME)
+        solve.save(radii, states, FILENAME, METADATA)
     return None
 
 
