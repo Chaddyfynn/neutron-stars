@@ -135,7 +135,7 @@ def plot_times(pressures, times):
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
 
     # Axis 1: Show the different state variables against time
-    ax1.set(xlabel="Pressure, Pa")
+    ax1.set(xlabel="Iteration")
     ax1.set(ylabel="Function Time, s")
     ax1.plot(pressures, times, '.', color="blue")
     # Show and close the plot
@@ -188,6 +188,7 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, fil
     mass_output = np.zeros((0, 1))
     pressures = np.zeros((0, 1))
     times = np.zeros((0, 1))
+    iterations = np.linspace(0, (max_pressure - min_pressure)/pressure_step, int((max_pressure - min_pressure)/pressure_step))
     while pressure < max_pressure:
         print("Calculating at pressure ", pressure, "Pa ...")
         start_time = tm.time()
@@ -204,7 +205,7 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, fil
     whole_time = tm.time() - whole_start
     print("Computation finished in ", round(whole_time, 1), "s")
     if plot_time:
-        plot_times(pressures, times)
+        plot_times(iterations, times)
 
     return pressures, radii_output, mass_output
 

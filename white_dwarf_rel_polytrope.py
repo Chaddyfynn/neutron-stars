@@ -17,7 +17,7 @@ NUM = 17000 * MULTIPLIER  # Number of Steps
 
 # System Settings
 MIN_PRESSURE = 1  # Minimum Central Pressure, Pa
-MAX_PRESSURE = 5e21  # Maximum Central Pressure, Pa
+MAX_PRESSURE = 10e21  # Maximum Central Pressure, Pa
 NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
 
@@ -26,13 +26,13 @@ M0 = 1.98847e30  # Solar Mass, kg
 R0 = (con.G*M0)/(con.c**2)  # Solar Schwarzchild Radius, m
 
 # System Constants
-K = con.hbar**2/(15*np.pi**2*con.m_e) * \
-    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)  # Pressure Constant, No Unis
-GAMMA = 5/3  # Polytropic Index, No Units
+K = con.hbar * con.c / (12 * np.pi**2) * \
+    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(4/3)  # Pressure Constant, No Unis
+GAMMA = 4/3  # Polytropic Index, No Units
 
 # Save and Graph Settings
-FILENAME = "White_Dwarf"  # Graph and Text File Desired Name
-PLOT_TIME = True  # Plot Function Evaluation Times vs Pressure? (Boolean)
+FILENAME = "White_Dwarf_Rel_Polytrope"  # Graph and Text File Desired Name
+PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
 
 
