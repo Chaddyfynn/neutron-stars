@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import time as tm
+import scipy.integrate as sci_int
 
 # Function for taking a single RK4 step
 # The grad function must be of form grad(time (float), state (numpy array of floats)) -> (numpy array of floats)
@@ -72,6 +73,45 @@ def rk4_step_till(grad, time, state, step_size, final_time):
     return times, state_arr
 
 
+def scipy(grad, r_0, state_0, step, num):
+    t_span = [r_0, step*num]
+    solution = sci_int.solve_ivp(grad, t_span, state_0, method='RK45',
+                                 t_eval=None, dense_output=False, events=None,
+                                 vectorized=True, args=None, max_step=1000)
+
+    radius = solution['t']
+    state = solution['y']
+    return radius, state
+
+
+def plot_root(radii, states, ideal_filename, radius):
+    # Prepare two side by side plots
+    print("Plotting...")
+    fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
+    ax2 = ax1.twinx()
+
+    # Axis 1: Show the different state variables against time
+    ax1.set(xlabel="Radius r, km")
+    ax2.set(ylabel="Mass, Solar Masses")
+    ax1.set(ylabel="Pressure, Pa")
+    ax2.plot(radii, states[:, 0], color="red", label="Mass")
+    ax1.plot(radii, states[:, 1], linestyle="--",
+             color="blue", label="Pressure")
+    ax1.axvline(radius, color='g')
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+    # Show and close the plot
+    ax1.grid()
+    # ax3.grid()
+    plt.tight_layout()
+    filename = path_checker(ideal_filename, ".png")
+    print("Saving figure...")
+    plt.savefig(filename, dpi=1000)
+    plt.show()
+    plt.clf()
+    return 0
+
+
 def plot(radii, states, ideal_filename):
     # Prepare two side by side plots
     print("Plotting...")
@@ -85,9 +125,8 @@ def plot(radii, states, ideal_filename):
     ax2.plot(radii, states[:, 0], color="red", label="Mass")
     ax1.plot(radii, states[:, 1], linestyle="--",
              color="blue", label="Pressure")
-    ax1.legend()
-    ax2.legend()
-
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
     # Show and close the plot
     ax1.grid()
     # ax3.grid()
@@ -176,14 +215,74 @@ def save(radii, states, ideal_filename, metadata):
                header=str(tm.ctime()), footer=output_meta)
 
 
-def root(radii, states):
-    index = np.where(states[:, 1] == min(states[:, 1]))[0][0]
-    radius = radii[index]
-    mass = states[index, 0]
-    return radius, mass
+def root_next(radii, states, tolerance):
+    masses = states[:, 0]
+    pressures = states[:, 1]
+    counter = 0
+    while counter < len(radii) - 2:
+        pressure_2 = pressures[counter + 2]
+        pressure_1 = pressures[counter + 1]
+        pressure_0 = pressures[counter]
+        radius_2 = radii[counter + 2]
+        radius_1 = radii[counter + 1]
+        radius_0 = radii[counter]
+
+        dp_0 = pressure_1 - pressure_0
+        dp_1 = pressure_2 - pressure_1
+        dr_0 = radius_1 - radius_0
+        dr_1 = radius_2 - radius_1
+        d2_p = dp_1 - dp_0
+        d_r2 = dr_1 - dr_0
+        d2p_dr2 = d2_p / d_r2
+        d_p_d_r = dp_0 / dr_0
+        if d_p_d_r > tolerance and d2p_dr2 >= 0:
+            radius = radii[counter]
+            mass = masses[counter]
+            print("Roots Found at R = ", round(radius, 1),
+                  " km and M = ", round(mass, 1), " M0")
+            return radius, mass
+
+        else:
+            counter += 1
+    print("No Roots Found")
+    return 0, 0
 
 
-def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, filename, plot_time):
+def root_prev(radii, states, tolerance):
+    masses = states[:, 0]
+    pressures = states[:, 1]
+    counter = 2
+    abs_tol = -1 * pressures[0] * tolerance / radii[-1]
+    while counter < len(radii):
+        pressure_2 = pressures[counter]
+        pressure_1 = pressures[counter - 1]
+        pressure_0 = pressures[counter - 2]
+        radius_2 = radii[counter]
+        radius_1 = radii[counter - 1]
+        radius_0 = radii[counter - 2]
+
+        dp_0 = pressure_1 - pressure_0
+        dp_1 = pressure_2 - pressure_1
+        dr_0 = radius_1 - radius_0
+        dr_1 = radius_2 - radius_1
+        d2_p = dp_1 - dp_0
+        d_r2 = dr_1 - dr_0
+        d2p_dr2 = d2_p / d_r2
+        d_p_d_r = dp_1 / dr_1
+        if d_p_d_r > abs_tol and d2p_dr2 >= 0:
+            radius = radii[counter]
+            mass = masses[counter]
+            print("Roots Found at R = ", round(radius, 1),
+                  " km and M = ", round(mass, 1), " M0")
+            return radius, mass
+
+        else:
+            counter += 1
+    print("No Roots Found")
+    return 0, 0
+
+
+def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, tolerance, filename, plot_time, plot_individual):
     whole_start = tm.time()
     pressure = min_pressure
     radii_output = np.zeros((0, 1))
@@ -192,19 +291,27 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, fil
     times = np.zeros((0, 1))
     iterations = np.linspace(0, (max_pressure - min_pressure) /
                              pressure_step, int((max_pressure - min_pressure)/pressure_step))
+    counter = 0
     while pressure < max_pressure:
-        print("Calculating at pressure ", pressure, "Pa ...")
+        print("Calculating at pressure ", round(pressure, 2), "Pa ...")
         start_time = tm.time()
         state_0 = np.array([0, pressure])
+        # this changes with different scipy/uni rk4
         pressures = np.append(pressures, pressure)
         radii, states = rk4(grad, r_0, state_0, step, num)
-        radius, mass = root(radii/1000, states)
+        #  radii, states = scipy(grad, r_0, state_0, step, num)
+        # radius, mass = root_next(radii/1000, states, tolerance)
+        radius, mass = root_prev(radii/1000, states, tolerance)
         radii_output = np.append(radii_output, radius)
         mass_output = np.append(mass_output, mass)
         pressure = pressure + pressure_step
         function_time = tm.time() - start_time
         times = np.append(times, function_time)
-        print("Finished calculation in ", round(function_time, 1), "s ...")
+        print("Finished calculation ", counter,
+              " in ", round(function_time, 1), "s ...")
+        if plot_individual:
+            plot_root(radii/1000, states, filename + "_Individual", radius)
+        counter += 1
     whole_time = tm.time() - whole_start
     print("Computation finished in ", round(whole_time, 1), "s")
     if plot_time:

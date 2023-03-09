@@ -10,17 +10,18 @@ import scipy.constants as con
 import calculator as solve
 
 # RK4 / Calculator Settings
-MULTIPLIER = 3  # Step and Number Multiplier (Higher =>  More Resolution)
+MULTIPLIER = 1  # Step and Number Multiplier (Higher =>  More Resolution)
 R_0 = 0.001  # Initial Condition Radius, m
 STEP = 1000 / MULTIPLIER  # Step, dx
-NUM = 12000 * MULTIPLIER  # Number of Steps
+NUM = 20000 * MULTIPLIER  # Number of Steps
 
 # System Settings
 STATE_0 = np.array([0, 2.2e21])
 MIN_PRESSURE = 1  # Minimum Central Pressure, Pa
-MAX_PRESSURE = 10e21  # Maximum Central Pressure, Pa
-NUM_STEPS = 200  # Number of Iterations (Plot Points on Graph)
+MAX_PRESSURE = 5e21  # Maximum Central Pressure, Pa
+NUM_STEPS = 30  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
+TOLERANCE = 0.002
 
 # Astronomical Constant
 M0 = 1.98847e30  # Solar Mass, kg
@@ -33,8 +34,9 @@ GAMMA = 5/3  # Polytropic Index, No Units
 
 # Save and Graph Settings
 FILENAME = "White_Dwarf_Non_Rel_Polytrope"  # Graph and Text File Desired Name
-PLOT_TIME = True  # Plot Function Evaluation Times vs Pressure? (Boolean)
-FULL_COMPUTATION = False
+PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
+FULL_COMPUTATION = True
+PLOT_INDIVIDUAL = False
 CROP = 0
 METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
 
@@ -42,7 +44,7 @@ METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
 def main():
     if FULL_COMPUTATION:
         pressures, radii, masses = solve.iterate(
-            grad, R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, PRESSURE_STEP, FILENAME, PLOT_TIME)
+            grad, R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, PRESSURE_STEP, TOLERANCE, FILENAME, PLOT_TIME, PLOT_INDIVIDUAL)
         solve.plot_pressure(pressures, radii, masses, FILENAME, CROP)
         states = np.c_[radii, masses]
         solve.save(pressures, states, FILENAME, METADATA)
