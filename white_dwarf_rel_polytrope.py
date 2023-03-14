@@ -12,8 +12,10 @@ import calculator as solve
 # RK4 / Calculator Settings
 MULTIPLIER = 2  # Step and Number Multiplier (Higher =>  More Resolution)
 R_0 = 0.001  # Initial Condition Radius, m
-STEP = 1000 / MULTIPLIER  # Step, dx
+MAX_RADIUS = 20_000_000  # m
 NUM = 20000 * MULTIPLIER  # Number of Steps
+STEP = MAX_RADIUS / NUM  # Step, dx
+
 
 # System Settings
 STATE_0 = np.array([0, 5.62e24])

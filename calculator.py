@@ -81,10 +81,16 @@ def scipy(grad, r_0, state_0, step, num):
 
     radius = solution['t']
     state = solution['y']
+    mass = state[0]
+    pressure = state[1]
+    state = mass, pressure
     return radius, state
 
 
 def plot_root(radii, states, ideal_filename, radius):
+    # mass = states[:, 0] # uni rk4
+    # pressure = states[:, 1] # uni rk4
+    mass, pressure = states  # scipy
     # Prepare two side by side plots
     print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
@@ -94,8 +100,8 @@ def plot_root(radii, states, ideal_filename, radius):
     ax1.set(xlabel="Radius r, km")
     ax2.set(ylabel="Mass, Solar Masses")
     ax1.set(ylabel="Pressure, Pa")
-    ax2.plot(radii, states[:, 0], color="red", label="Mass")
-    ax1.plot(radii, states[:, 1], linestyle="--",
+    ax2.plot(radii, mass, color="red", label="Mass")
+    ax1.plot(radii, pressure, linestyle="--",
              color="blue", label="Pressure")
     ax1.axvline(radius, color='g')
     ax1.legend(loc='upper left')
@@ -113,6 +119,9 @@ def plot_root(radii, states, ideal_filename, radius):
 
 
 def plot(radii, states, ideal_filename):
+    # mass = states[:, 0] # uni rk4
+    # pressure = states[:, 1] # uni rk4
+    mass, pressure = states
     # Prepare two side by side plots
     print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
@@ -122,8 +131,8 @@ def plot(radii, states, ideal_filename):
     ax1.set(xlabel="Radius r, km")
     ax2.set(ylabel="Mass, Solar Masses")
     ax1.set(ylabel="Pressure, Pa")
-    ax2.plot(radii, states[:, 0], color="red", label="Mass")
-    ax1.plot(radii, states[:, 1], linestyle="--",
+    ax2.plot(radii, mass, color="red", label="Mass")
+    ax1.plot(radii, pressure, linestyle="--",
              color="blue", label="Pressure")
     ax1.legend(loc='upper left')
     ax2.legend(loc='upper right')
@@ -152,8 +161,8 @@ def plot_pressure(pressures, radii, masses, ideal_filename, crop):
     ax2.plot(pressures, masses, color="red", label="Mass")
     ax1.plot(pressures, radii, linestyle="--",
              color="blue", label="Radius")
-    ax1.set_xlim(left=crop)
-    ax2.set_xlim(left=crop)
+    # ax1.set_xlim(left=crop)
+    # ax2.set_xlim(left=crop)
     ax1.legend()
     ax2.legend()
 
@@ -206,7 +215,9 @@ def path_checker(ideal_filename, extension):
 
 def save(radii, states, ideal_filename, metadata):
     print("Saving Array...")
-    output_array = np.c_[radii, states]  # Output Array
+    masses, pressures = states
+    intermediate_array = np.c_[radii, masses]  # Output Array
+    output_array = np.c_[intermediate_array, pressures]
     file = path_checker(ideal_filename, ".txt")
     output_meta = str("")
     for meta in metadata:
@@ -216,8 +227,9 @@ def save(radii, states, ideal_filename, metadata):
 
 
 def root_next(radii, states, tolerance):
-    masses = states[:, 0]
-    pressures = states[:, 1]
+    # masses = states[:, 0] # uni rk4
+    # pressures = states[:, 1] # uni rk4
+    masses, pressures = states  # scipy
     counter = 0
     while counter < len(radii) - 2:
         pressure_2 = pressures[counter + 2]
@@ -249,8 +261,9 @@ def root_next(radii, states, tolerance):
 
 
 def root_prev(radii, states, tolerance):
-    masses = states[:, 0]
-    pressures = states[:, 1]
+    # masses = states[:, 0] # uni rk4
+    # pressures = states[:, 1] # uni rk4
+    masses, pressures = states  # scipy
     counter = 2
     abs_tol = -1 * pressures[0] * tolerance / radii[-1]
     while counter < len(radii):
@@ -282,6 +295,11 @@ def root_prev(radii, states, tolerance):
     return 0, 0
 
 
+def fixed_limit(radii, states, tolerance):
+    # code go here
+    return None
+
+
 def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, tolerance, filename, plot_time, plot_individual):
     whole_start = tm.time()
     pressure = min_pressure
@@ -295,12 +313,13 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, tol
     while pressure < max_pressure:
         print("Calculating at pressure ", round(pressure, 2), "Pa ...")
         start_time = tm.time()
-        state_0 = np.array([0, pressure])
-        # this changes with different scipy/uni rk4
+        # state_0 = np.array([0, pressure]) # uni rk4
+        state_0 = [0, pressure]  # scipy
         pressures = np.append(pressures, pressure)
-        radii, states = rk4(grad, r_0, state_0, step, num)
-        #  radii, states = scipy(grad, r_0, state_0, step, num)
-        # radius, mass = root_next(radii/1000, states, tolerance)
+        # radii, states = rk4(grad, r_0, state_0, step, num) # uni rk4
+        radii, states = scipy(grad, r_0, state_0, step, num)  # scipy
+        # radius, mass = root_next(radii/1000, states, tolerance) # root finding using next points
+        # root finding using previous points
         radius, mass = root_prev(radii/1000, states, tolerance)
         radii_output = np.append(radii_output, radius)
         mass_output = np.append(mass_output, mass)
