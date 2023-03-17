@@ -8,7 +8,6 @@ Created on Tue Mar  7 13:01:37 2023
 import numpy as np
 import scipy.constants as con
 import scipy.integrate as sci_int
-#import scipy.optimize as sci_opt
 
 
 r_0 = 0.001
@@ -39,9 +38,8 @@ def main(state_0):
     state = solution['y']
 
     #rho = state[0] / (4/3 * np.pi * radius**3)
-    #x0 = 2.5e-20
-    #d = sci_opt.newton(func, x0, tol=1e-25, maxiter=1000)
-    # print(d)
+    #x0 = 1
+    #d = sci_opt.newton(func, x0, tol=1e-4, maxiter=10000)
 
     if min(state[1]) > 1e-10:
         e = np.where(state[1] == min(state[1]))
@@ -57,16 +55,8 @@ def main(state_0):
     return r_val, m_val
 
 
-def func(kf):
-    x = kf/(con.m_e*con.c)
-    # print(x)
-    return (eps0/24 * ((2*x**3-3*x)*(1+x**2)**1/2 + 3*np.arcsinh(x)) - state_initial)
-
-
-# print(func(1e-20))
-
-
 def grad(radius, state):
+
     m, p = state
     dm_dr = ((4 * np.pi * np.power((radius), 2) *
              np.power((p/K), 1/GAMMA))/(M0*(con.c)**2))
