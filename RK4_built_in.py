@@ -47,6 +47,3 @@ def grad(radius, state):
         np.power((p/K), (1/GAMMA))
 
     return np.array([dm_dr, dp_dr])
-
-
-main()

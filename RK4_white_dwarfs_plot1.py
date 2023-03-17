@@ -30,7 +30,7 @@ def plot(radii, states):
     ax1.grid()
     # ax3.grid()
     plt.tight_layout()
-    plt.savefig("Figure.png", dpi=1000)
+    plt.savefig("WD_plot1_rel.png", dpi=1000)
     plt.show()
     plt.clf()
     return 0

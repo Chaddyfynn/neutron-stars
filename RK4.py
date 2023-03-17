@@ -37,6 +37,7 @@ def main():
     radii, states = rk4(grad, r_0, state_0, 1000, 13000)
     if plot(radii, states) == 0:
         print("Success")
+        print(states)
         d = np.where(states[:, 1] == min(states[:, 1]))
         index = d[0][0]
         R = radii[index]/1000
