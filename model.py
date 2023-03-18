@@ -22,8 +22,6 @@ import time
 # RK4 / Calculator Settings
 R_0 = 0.0001  # Initial Condition Radius, m
 R_F = 45_000  # Final Radius, m
-# NUM = 10  # Number of Steps
-# STEP = R_F / NUM  # Step, dx
 R_SPAN = [R_0, R_F]  # Radii Span
 
 # System Settings
@@ -31,55 +29,56 @@ MIN_PRESSURE = 1e29  # Minimum Central Pressure, Pa
 MAX_PRESSURE = 1e33  # Maximum Central Pressure, Pa
 NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
-TOLERANCE = 1e15  # 0 - 1 factor of max dp/dr root point tolerance (ideal=0)
-LOGARITHMIC = True
-P_EVAL = np.logspace(np.log10(MIN_PRESSURE), np.log10(MAX_PRESSURE), NUM_STEPS)
+TOLERANCE = 1e15  # Radius Root Finding Tolerance (Changes Meaning According to Root Finding Algorithm)
+LOGARITHMIC = True # Plot and Produce Points Logarithmically? (Boolean)
+if LOGARITHMIC:
+    P_EVAL = np.logspace(np.log10(MIN_PRESSURE), np.log10(MAX_PRESSURE), NUM_STEPS) # Logarithmic Points
+else:
+    P_EVAL = np.linspace(MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS) # Linear Points
 
 # Astronomical Constant
 M0 = 1.98847e30  # Solar Mass, kg
 R0 = (con.G*M0)/(con.c**2)  # Solar Schwarzchild Radius, m
 
 # Thermodynamic Constants
-INIT_X = 0.0619477081738926
 EPS_N_0 = np.power(con.m_n, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
-                                                       np.power(con.hbar, 3))
+                                                       np.power(con.hbar, 3)) # Neutron Star Energy Density Constant, J m^-3
 
 # Save and Graph Settings
 FILENAME = "TOV_Neutron_Star_Range"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
-FULL_COMPUTATION = True
+FULL_COMPUTATION = True # Compute over central pressure range?
 PLOT_INDIVIDUAL = False  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
-METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS]
+METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS] # Desired save metadata
 
 # Polytropic Constants
 K_WD_NON_REL = con.hbar**2/(15*np.pi**2*con.m_e) * \
-    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)  # Pressure Constant, No Unis
+    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)  # White Dwarf Non Relativistc Pressure Constant, No Unis
 K_WD_REL = con.hbar * con.c / (12 * np.pi**2) * \
-    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(4/3)  # Pressure Constant, No Unis
+    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(4/3)  # White Dwarf Relativistic Pressure Constant, No Unis
 K_N_NON_REL = con.hbar**2/(15*np.pi**2*con.m_n) * \
-    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)  # Pressure Constant, No Unis
-GAMMA_NON_REL = 5/3  # Polytropic Index, No Units
-GAMMA_REL = 4/3
+    ((3*np.pi**2)/(2*con.m_n*con.c**2))**(5/3)  # Neutron Star Non Relativistic Pressure Constant, No Unis
+GAMMA_NON_REL = 5/3  # Non Relativistic Polytropic Index, No Units
+GAMMA_REL = 4/3 # Relativistic Polytropic Index, No Units
 
 
-class Star():
+class Star(): # Star Superclass
     def __init__(self, central_pressure):
-        self.p0 = central_pressure
+        self.p0 = central_pressure # Create p0 attribute
 
-    def __str__(self):
-        # String formatting
+    def __str__(self): # String formatting
         return f"Generic Star: p0={self.p0} Pa"
 
-    def increment(self, step):
-        self.p0 += step
+    def increment(self, step): # Central Pressure Increment Function
+        self.p0 += step # Increase p0 by step
         return None
 
 
-class Newtonian(Star):
-    def __init__(self, central_pressure):
-        super().__init__(central_pressure)
+class Newtonian(Star): # Newtonian Sub and Superclass
+    def __init__(self, central_pressure): 
+        super().__init__(central_pressure) # Inherit Star
 
     def grad(self, radius, state):
         mass, pressure = state
@@ -101,7 +100,25 @@ class FermiModel(Newtonian):
 
     def energy_density(self, state):
         mass, pressure = state
-        return full_energy_density(state)
+        return self.full_energy_density(state)
+    
+    def fermi_pressure(self, x, pressure):
+        # print("Calculating at", pressure)
+        return EPS_N_0/24 * ((2 * np.power(x, 3) - 3 * x) *
+                             np.power(1 + np.power(x, 2), 1/2) + 3 * np.arcsinh(x)) - \
+            pressure
+
+
+    def fermi_energy_density(self, x):
+        return EPS_N_0/8 * ((2 * np.power(x, 3) + x) * np.power(1 +
+                                                                np.power(x, 2), 1/2) - np.arcsinh(x))
+
+
+    def full_energy_density(self, state):
+        mass, pressure = state
+        x = sci_opt.bisect(self.fermi_pressure, 150, -150,
+                           args=(pressure), maxiter=10000)
+        return self.fermi_energy_density(x)
 
 
 # Defines the structure of any gas with a Polytropic EoS
@@ -123,7 +140,7 @@ class PolytropeModel(Newtonian):
     # radius = [radius (m)], state = [mass (kg), pressure (Pa)]
 
 
-class TOVModel(Star):
+class TOVModel(FermiModel):
     def __init__(self, central_pressure):
         super().__init__(central_pressure)
         # Code go here
@@ -133,40 +150,17 @@ class TOVModel(Star):
         mass, pressure = state
         sq_radius = np.power(radius, 2)
         cb_radius = np.power(radius, 3)
-        e_dens = full_energy_density(state)
+        e_dens = self.full_energy_density(state)
         c_2 = np.power(con.c, 2)
         term_3 = np.power(1 - 2 * con.G * (mass) / (c_2 * radius), -1)
         if term_3 < 0:
             print("Imaginary Solution")
             term_3 = -term_3
-        # dp_dr = -1 * R0 * e_dens * mass / (2 * sq_radius) * \
-        #     (1 + pressure/e_dens) * (1 + (4 * np.pi * cb_radius * pressure * M0)/(mass * c_2)) * \
-        #     np.power(1 - R0 * mass / radius, - 1)
-        # dm_dr = ((4 * np.pi * sq_radius) * e_dens/(M0*(con.c)**2))
         dp_dr = -1 * con.G * e_dens * (mass) / (c_2 * sq_radius) * \
             (1 + pressure/e_dens) * (1 + (4 * np.pi * cb_radius * pressure)/((mass) * c_2)) * \
             term_3
         dm_dr = ((4 * np.pi * sq_radius) * e_dens/((con.c)**2))
         return np.array([dm_dr, dp_dr])
-
-
-def fermi_pressure(x, pressure):
-    # print("Calculating at", pressure)
-    return EPS_N_0/24 * ((2 * np.power(x, 3) - 3 * x) *
-                         np.power(1 + np.power(x, 2), 1/2) + 3 * np.arcsinh(x)) - \
-        pressure
-
-
-def fermi_energy_density(x):
-    return EPS_N_0/8 * ((2 * np.power(x, 3) + x) * np.power(1 +
-                                                            np.power(x, 2), 1/2) - np.arcsinh(x))
-
-
-def full_energy_density(state):
-    mass, pressure = state
-    x = sci_opt.bisect(fermi_pressure, 150, -150,
-                       args=(pressure), maxiter=10000)
-    return fermi_energy_density(x)
 
 
 def solve_individual(body, r_span):
