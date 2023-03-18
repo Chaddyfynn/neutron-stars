@@ -172,8 +172,8 @@ def plot_pressure(pressures, radii, masses, ideal_filename, crop):
     ax2.set_xscale("log")
     # ax1.set_xlim(left=crop)
     # ax2.set_xlim(left=crop)
-    ax1.legend()
-    ax2.legend()
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
 
     # Show and close the plot
     ax1.grid()
