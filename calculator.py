@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import time as tm
 import scipy.integrate as sci_int
 
+M0 = 1.98847e30  # Solar Mass, kg
+
 # Function for taking a single RK4 step
 # The grad function must be of form grad(time (float), state (numpy array of floats)) -> (numpy array of floats)
 
@@ -92,6 +94,8 @@ def plot_root(radii, states, ideal_filename, radius):
     # pressure = states[:, 1] # uni rk4
     mass, pressure = states  # scipy
     # Prepare two side by side plots
+    if mass[-1] > 1e10:
+        mass = mass / M0
     print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     ax2 = ax1.twinx()
@@ -123,6 +127,8 @@ def plot(radii, states, ideal_filename):
     # pressure = states[:, 1] # uni rk4
     mass, pressure = states
     # Prepare two side by side plots
+    if mass[-1] > 1e10:
+        mass = mass / M0
     print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     ax2 = ax1.twinx()
@@ -153,7 +159,8 @@ def plot_pressure(pressures, radii, masses, ideal_filename, crop):
     print("Plotting...")
     fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
     ax2 = ax1.twinx()
-
+    if masses[0] > 1e10:
+        masses = masses / M0
     # Axis 1: Show the different state variables against time
     ax1.set(xlabel="Pressure, Pa")
     ax2.set(ylabel="Mass, Solar Masses")
@@ -161,6 +168,8 @@ def plot_pressure(pressures, radii, masses, ideal_filename, crop):
     ax2.plot(pressures, masses, color="red", label="Mass")
     ax1.plot(pressures, radii, linestyle="--",
              color="blue", label="Radius")
+    ax1.set_xscale("log")
+    ax2.set_xscale("log")
     # ax1.set_xlim(left=crop)
     # ax2.set_xlim(left=crop)
     ax1.legend()
@@ -215,7 +224,14 @@ def path_checker(ideal_filename, extension):
 
 def save(radii, states, ideal_filename, metadata):
     print("Saving Array...")
-    masses, pressures = states
+    if isinstance(states, np.ndarray):
+        masses = states[:, 0]
+        pressures = states[:, 1]
+    elif isinstance(states, tuple):
+        masses, pressures = states
+    else:
+        print("Array type undetermined")
+        return None
     intermediate_array = np.c_[radii, masses]  # Output Array
     output_array = np.c_[intermediate_array, pressures]
     file = path_checker(ideal_filename, ".txt")
@@ -251,7 +267,7 @@ def root_next(radii, states, tolerance):
             radius = radii[counter]
             mass = masses[counter]
             print("Roots Found at R = ", round(radius, 1),
-                  " km and M = ", round(mass, 1), " M0")
+                  " km and M = ", round(mass, 2), " M0")
             return radius, mass
 
         else:

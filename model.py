@@ -16,34 +16,42 @@ import numpy as np
 import scipy.constants as con
 import calculator as calc
 import scipy.integrate as sci_int
+import scipy.optimize as sci_opt
 import time
 
 # RK4 / Calculator Settings
 R_0 = 0.0001  # Initial Condition Radius, m
-R_F = 20_000_000  # Final Radius, m
-NUM = 1_000_000  # Number of Steps
-STEP = R_F / NUM  # Step, dx
+R_F = 45_000  # Final Radius, m
+# NUM = 10  # Number of Steps
+# STEP = R_F / NUM  # Step, dx
 R_SPAN = [R_0, R_F]  # Radii Span
 
 # System Settings
-MIN_PRESSURE = 2.2e21  # Minimum Central Pressure, Pa
-MAX_PRESSURE = 4e21  # Maximum Central Pressure, Pa
-NUM_STEPS = 10  # Number of Iterations (Plot Points on Graph)
+MIN_PRESSURE = 1e29  # Minimum Central Pressure, Pa
+MAX_PRESSURE = 1e33  # Maximum Central Pressure, Pa
+NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
-TOLERANCE = 0.01  # 0 - 1 factor of max dp/dr root point tolerance (ideal=0)
+TOLERANCE = 1e15  # 0 - 1 factor of max dp/dr root point tolerance (ideal=0)
+LOGARITHMIC = True
+P_EVAL = np.logspace(np.log10(MIN_PRESSURE), np.log10(MAX_PRESSURE), NUM_STEPS)
 
 # Astronomical Constant
 M0 = 1.98847e30  # Solar Mass, kg
 R0 = (con.G*M0)/(con.c**2)  # Solar Schwarzchild Radius, m
 
+# Thermodynamic Constants
+INIT_X = 0.0619477081738926
+EPS_N_0 = np.power(con.m_n, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
+                                                       np.power(con.hbar, 3))
+
 # Save and Graph Settings
-FILENAME = "Neutron_Star_Non_Rel_Polytrope"  # Graph and Text File Desired Name
+FILENAME = "TOV_Neutron_Star_Range"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
-FULL_COMPUTATION = False
+FULL_COMPUTATION = True
 PLOT_INDIVIDUAL = False  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
-METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS]
+METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS]
 
 # Polytropic Constants
 K_WD_NON_REL = con.hbar**2/(15*np.pi**2*con.m_e) * \
@@ -56,21 +64,23 @@ GAMMA_NON_REL = 5/3  # Polytropic Index, No Units
 GAMMA_REL = 4/3
 
 
-class PolytropeModel:  # Defines the structure of any gas with a Polytropic EoS
-    def __init__(self, pressure_constant, polytropic_index):
-        self.k = pressure_constant  # Creates k property
-        self.gamma = polytropic_index  # Creates gamma property
+class Star():
+    def __init__(self, central_pressure):
+        self.p0 = central_pressure
 
     def __str__(self):
-        # Defines str formatting
-        return f"Polytropic model k={self.k} gamma={self.gamma}"
+        # String formatting
+        return f"Generic Star: p0={self.p0} Pa"
 
-    def energy_density(self, state):  # state = [mass (kg), pressure (Pa)]
-        mass, pressure = state
-        # Calculates energy density, Pa
-        return np.power(pressure / self.k, 1 / self.gamma)
+    def increment(self, step):
+        self.p0 += step
+        return None
 
-    # radius = [radius (m)], state = [mass (kg), pressure (Pa)]
+
+class Newtonian(Star):
+    def __init__(self, central_pressure):
+        super().__init__(central_pressure)
+
     def grad(self, radius, state):
         mass, pressure = state
         # Pre-calculates radius^2 constant for efficiency
@@ -85,27 +95,85 @@ class PolytropeModel:  # Defines the structure of any gas with a Polytropic EoS
         return np.array([dm_dr, dp_dr])
 
 
-class PolyStar(PolytropeModel):  # Defines a star with a polytropic EoS
+class FermiModel(Newtonian):
+    def __init__(self, central_pressure):
+        super().__init__(central_pressure)
+
+    def energy_density(self, state):
+        mass, pressure = state
+        return full_energy_density(state)
+
+
+# Defines the structure of any gas with a Polytropic EoS
+class PolytropeModel(Newtonian):
     def __init__(self, pressure_constant, polytropic_index, central_pressure):
-        # Inherit polytropic properties
-        super().__init__(pressure_constant, polytropic_index)
-        self.p0 = central_pressure  # Create central pressure property
+        super().__init__(central_pressure)
+        self.k = pressure_constant  # Creates k property
+        self.gamma = polytropic_index  # Creates gamma property
 
     def __str__(self):
-        # String formatting
-        return f"Polytropic model k={self.k}, gamma={self.gamma}, p0={self.p0} Pa"
+        # Defines str formatting
+        return f"Polytropic Star: k={self.k} gamma={self.gamma}, p0={self.p0}"
 
-    def increment(self, step):
-        self.p0 += step
-        return None
+    def energy_density(self, state):  # state = [mass (kg), pressure (Pa)]
+        mass, pressure = state
+        # Calculates energy density, Pa
+        return np.power(pressure / self.k, 1 / self.gamma)
+
+    # radius = [radius (m)], state = [mass (kg), pressure (Pa)]
+
+
+class TOVModel(Star):
+    def __init__(self, central_pressure):
+        super().__init__(central_pressure)
+        # Code go here
+
+    def grad(self, radius, state):
+        # print("Calculating Grad at", round(radius, 0), "m")
+        mass, pressure = state
+        sq_radius = np.power(radius, 2)
+        cb_radius = np.power(radius, 3)
+        e_dens = full_energy_density(state)
+        c_2 = np.power(con.c, 2)
+        term_3 = np.power(1 - 2 * con.G * (mass) / (c_2 * radius), -1)
+        if term_3 < 0:
+            print("Imaginary Solution")
+            term_3 = -term_3
+        # dp_dr = -1 * R0 * e_dens * mass / (2 * sq_radius) * \
+        #     (1 + pressure/e_dens) * (1 + (4 * np.pi * cb_radius * pressure * M0)/(mass * c_2)) * \
+        #     np.power(1 - R0 * mass / radius, - 1)
+        # dm_dr = ((4 * np.pi * sq_radius) * e_dens/(M0*(con.c)**2))
+        dp_dr = -1 * con.G * e_dens * (mass) / (c_2 * sq_radius) * \
+            (1 + pressure/e_dens) * (1 + (4 * np.pi * cb_radius * pressure)/((mass) * c_2)) * \
+            term_3
+        dm_dr = ((4 * np.pi * sq_radius) * e_dens/((con.c)**2))
+        return np.array([dm_dr, dp_dr])
+
+
+def fermi_pressure(x, pressure):
+    # print("Calculating at", pressure)
+    return EPS_N_0/24 * ((2 * np.power(x, 3) - 3 * x) *
+                         np.power(1 + np.power(x, 2), 1/2) + 3 * np.arcsinh(x)) - \
+        pressure
+
+
+def fermi_energy_density(x):
+    return EPS_N_0/8 * ((2 * np.power(x, 3) + x) * np.power(1 +
+                                                            np.power(x, 2), 1/2) - np.arcsinh(x))
+
+
+def full_energy_density(state):
+    mass, pressure = state
+    x = sci_opt.bisect(fermi_pressure, 150, -150,
+                       args=(pressure), maxiter=10000)
+    return fermi_energy_density(x)
 
 
 def solve_individual(body, r_span):
-    state_0 = [0, body.p0]  # Initial state at R_0
+    state_0 = [1e-6, body.p0]  # Initial state at R_0
     solution = sci_int.solve_ivp(body.grad, r_span, state_0, method='RK45',
                                  t_eval=None, dense_output=False, events=None,
                                  vectorized=True, args=None, max_step=1000)
-
     radii = solution['t']
     masses = solution['y'][0]
     pressures = solution['y'][1]
@@ -118,10 +186,18 @@ def root(radii, states, tolerance):
     loc_array = np.where(pressures <= tolerance)
     prime_index = loc_array[0]
     # prime_index = indices[0]
-    radius, mass, pressure = radii[prime_index][0], masses[prime_index], pressures[prime_index]
-    print("Root found at", round(radius, 1) /
-          1000, "km and", round(mass, 2), "M0.")
+    radius, mass, pressure = radii[prime_index][0], masses[prime_index][0], pressures[prime_index]
+    print("Root found at", radius /
+          1000, "km and", mass, "M0.")
     return radius, mass
+
+
+def rory(radius, state, tolerance):
+    e = np.where(state[1] == min(state[1]))
+    i = e[0][0]
+    r_val = radius[i]
+    m_val = state[0][i]
+    return r_val, m_val
 
 
 def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
@@ -134,12 +210,15 @@ def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
               round(body.p0, 2), "Pa ...")
         start_time = time.time()
         radii_2, states = solve_individual(body, r_span)
-        radius, mass = calc.root_prev(radii_2, states, tolerance)
-        # radius, mass = root(radii_2, states, tolerance)
+        # radius, mass = calc.root_prev(radii_2, states, TOLERANCE)
+        radius, mass = root(radii_2, states, tolerance)
         radii_1 = np.append(radii_1, radius)
         masses = np.append(masses, mass)
         pressures = np.append(pressures, body.p0)
-        body.increment(pressure_step)
+        if LOGARITHMIC:
+            body.p0 = P_EVAL[counter - 1]
+        else:
+            body.increment(pressure_step)
         calc_time = time.time() - start_time
         print("Calculation", counter, "completed in", round(calc_time, 1), "s.")
         counter += 1
@@ -150,10 +229,13 @@ def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
 
 
 if __name__ == "__main__":
-    non_rel_wd_star = PolyStar(K_WD_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
-    rel_wd_star = PolyStar(K_WD_REL, GAMMA_REL, MIN_PRESSURE)
-    non_rel_n_star = PolyStar(K_N_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
-    star = non_rel_wd_star
+    non_rel_wd_star = PolytropeModel(
+        K_WD_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
+    rel_wd_star = PolytropeModel(K_WD_REL, GAMMA_REL, MIN_PRESSURE)
+    non_rel_n_star = PolytropeModel(K_N_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
+    full_tov_n_star = TOVModel(MIN_PRESSURE)
+    full_newton_n_star = FermiModel(MIN_PRESSURE)
+    star = full_tov_n_star
     if FULL_COMPUTATION:
         radii, masses, pressures = solve_range(
             star, MAX_PRESSURE, PRESSURE_STEP, TOLERANCE, R_SPAN, FILENAME)
@@ -162,6 +244,8 @@ if __name__ == "__main__":
         calc.save(pressures, states, FILENAME, METADATA)
     else:
         radii, states = solve_individual(star, R_SPAN)
-        radius, mass = calc.root_prev(radii, states, TOLERANCE)
+        # radius, mass = rory(radii, states, TOLERANCE)
+        radius, mass = root(radii, states, TOLERANCE)
+        # radius, mass = calc.root_prev(radii, states, TOLERANCE)
         calc.plot_root(radii/1000, states, FILENAME, radius/1000)
         calc.save(radii/1000, states, FILENAME, METADATA)
