@@ -306,6 +306,21 @@ def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
     return radii_1, masses, pressures
 
 
+def energy_function():
+    model = ProtonElectronNeutronFermiModel(0)
+    init_pressure = 0
+    final_pressure = 1e29
+    step = 1e23
+    state = [0, init_pressure]
+    pressures = np.zeros((0,1))
+    energy_densities = np.zeros((0,1))
+    while state[1] < final_pressure:
+        pressures = np.append(pressures, state[1])
+        energy_densities = np.append(energy_densities, model.energy_density_calc(state))
+        state[1] += step
+    calc.save(pressures, energy_densities, "energy_function", [])
+
+
 if __name__ == "__main__":
     non_rel_wd_star = PolytropeModel(
         K_WD_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
