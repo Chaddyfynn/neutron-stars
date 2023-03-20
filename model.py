@@ -55,7 +55,7 @@ EPS_P_0 = np.power(con.m_p, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
 FILENAME = "Neutron_Star_Range"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
-FULL_COMPUTATION = True  # Compute over central pressure range?
+FULL_COMPUTATION = 0  # Compute over central pressure range?
 PLOT_INDIVIDUAL = False  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
 METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE,
@@ -148,7 +148,7 @@ class ProtonElectronNeutronFermiModel(Newtonian):
 
     def fermi_pressure_calc(self, x, pressure):
         scalar = self.fermi_pressure(x) - pressure
-        scalar = scalar[0]
+        scalar = scalar
         return np.array([scalar, scalar, scalar])
 
     def proton_energy_density(self, x):
@@ -308,15 +308,18 @@ def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
 
 def energy_function():
     model = ProtonElectronNeutronFermiModel(0)
-    init_pressure = 0
-    final_pressure = 1e29
-    step = 1e23
-    state = [0, init_pressure]
-    pressures = np.zeros((0,1))
-    energy_densities = np.zeros((0,1))
-    while state[1] < final_pressure:
+    init_pressure = float(0)
+    final_pressure = float(1e25)
+    step = float(1e23)
+    state = np.array([0, init_pressure])
+    pressures = np.zeros((0, 1))
+    energy_densities = np.zeros((0, 1))
+    momenta = np.zeros((0, 3))
+    while state[1] <= final_pressure:
         pressures = np.append(pressures, state[1])
-        energy_densities = np.append(energy_densities, model.energy_density_calc(state))
+        energy_density = model.energy_density_calc(state)
+        energy_densities = np.append(
+            energy_densities, energy_density)
         state[1] += step
     calc.save(pressures, energy_densities, "energy_function", [])
 
@@ -336,6 +339,8 @@ if __name__ == "__main__":
         calc.plot_pressure(pressures, radii/1000, masses, FILENAME, CROP)
         states = np.c_[radii/1000, masses]
         calc.save(pressures, states, FILENAME, METADATA)
+    elif FULL_COMPUTATION == 0:
+        energy_function()
     else:
         radii, states = solve_individual(star, R_SPAN)
         # radius, mass = rory(radii, states, TOLERANCE)

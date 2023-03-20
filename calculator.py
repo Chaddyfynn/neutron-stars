@@ -224,22 +224,26 @@ def path_checker(ideal_filename, extension):
 
 def save(radii, states, ideal_filename, metadata):
     print("Saving Array...")
-    if isinstance(states, np.ndarray):
-        masses = states[:, 0]
-        pressures = states[:, 1]
-    elif isinstance(states, tuple):
-        masses, pressures = states
-    else:
-        print("Array type undetermined")
+    if states.shape != radii.shape:
+        if isinstance(states, np.ndarray):
+            masses = states[:, 0]
+            pressures = states[:, 1]
+        elif isinstance(states, tuple):
+            masses, pressures = states
+        else:
+            print("Array type undetermined")
         return None
-    intermediate_array = np.c_[radii, masses]  # Output Array
-    output_array = np.c_[intermediate_array, pressures]
+        intermediate_array = np.c_[radii, masses]  # Output Array
+        output_array = np.c_[intermediate_array, pressures]
+    else:
+        output_array = np.c_[radii, states]
     file = path_checker(ideal_filename, ".txt")
     output_meta = str("")
     for meta in metadata:
         output_meta = output_meta + ", " + str(meta)
     np.savetxt(file, output_array, delimiter=",",
                header=str(tm.ctime()), footer=output_meta)
+    print("Array Saved ...")
 
 
 def root_next(radii, states, tolerance):
