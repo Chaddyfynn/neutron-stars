@@ -30,8 +30,10 @@ IND_UNITS = ["Pressure, Pa"]
 DEP_VAR = 1
 DEP_UNITS = ["Energy Density, Pa"]
 
+
 def get_path(directory, filename, extension):
-    directory, filename, extension = str(directory), str(filename), str(extension)
+    directory, filename, extension = str(
+        directory), str(filename), str(extension)
     return directory + filename + extension
 
 
@@ -39,7 +41,8 @@ def get_data(path, delimiter, skip_head, skip_foot):
     data = np.genfromtxt(path, dtype=float, delimiter=",", comments='#',
                          skip_header=skip_head, skip_footer=skip_foot)
     return data
-    
+
+
 def plot_data(data, ideal_filename, ind_var, ind_units, dep_var, dep_units):
     # init_ind_var = 0
     # init_dep_var = 0
@@ -52,8 +55,10 @@ def plot_data(data, ideal_filename, ind_var, ind_units, dep_var, dep_units):
     #     ax2 = ax.twinx()
     ax.set(xlabel=ind_units[0])
     ax.set(ylabel=dep_units[0])
-    ax.plot(ind_var_plot, dep_var_plot, color="red", marker=".", linestyle='None')
+    ax.plot(ind_var_plot, dep_var_plot, color="red",
+            marker=".", linestyle='None')
     ax.set_xscale("log")
+    ax.set_yscale("log")
     ax.legend(loc='upper left')
     ax.grid()
     plt.tight_layout()
@@ -62,6 +67,7 @@ def plot_data(data, ideal_filename, ind_var, ind_units, dep_var, dep_units):
     plt.savefig(filename, dpi=1000)
     plt.show()
     plt.clf()
+
 
 if __name__ == "__main__":
     path = get_path(DIRECTORY, FILENAME, EXTENSION)
