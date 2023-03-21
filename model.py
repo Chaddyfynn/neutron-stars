@@ -56,7 +56,8 @@ EPS_P_0 = np.power(con.m_p, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
 FILENAME = "Efficient_Star_Tests"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
-FULL_COMPUTATION = False  # Compute over central pressure range? (0 to generate e_dens array)
+# Compute over central pressure range? (0 to generate e_dens array)
+FULL_COMPUTATION = False
 PLOT_INDIVIDUAL = False  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
 METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE,
@@ -133,7 +134,7 @@ class ProtonElectronNeutronFermiModel(Newtonian):
         self.last_solution = [0, 0, 0]
         self.e_dens_array = np.genfromtxt(".\\important_saves\\energy_function_combined_append.txt", dtype=float,
                                           comments='#', delimiter=',', skip_header=1)
-        
+
     def proton_pressure(self, x):
         return EPS_P_0/24 * ((2 * np.power(x, 3) - 3 * x) *
                              np.power(1 + np.power(x, 2), 1/2) + 3 * np.arcsinh(x))
@@ -172,15 +173,16 @@ class ProtonElectronNeutronFermiModel(Newtonian):
     def energy_density_calc(self, state):
         mass, pressure = state
         potential_solution = self.efficient_energy_density_calc(state)
-        if potential_solution ==  "No Solution":
+        if potential_solution == "No Solution":
             print("No solution in self.e_dens_array")
             solution = sci_opt.root(self.fermi_pressure_calc, self.last_solution,
                                     args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
             x = solution.x
             e_dens = self.energy_density(x)
             self.last_solution = x
-            file=open(".\\important_saves\\energy_function_combined_append.txt",'a')
-            output_array=np.c_[state[1],e_dens]
+            file = open(
+                ".\\important_saves\\energy_function_combined_append.txt", 'a')
+            output_array = np.c_[state[1], e_dens]
             print(output_array)
             np.savetxt(file, output_array, delimiter=",")
             file.close()
@@ -188,9 +190,10 @@ class ProtonElectronNeutronFermiModel(Newtonian):
             # print("Efficient solution")
             e_dens = potential_solution
         return e_dens
-    
+
     def efficient_energy_density_calc(self, state):
-        truths = np.logical_and(self.e_dens_array[:, 0] <= (state[1] + 1e26), self.e_dens_array[:,0] >= (state[1] - 1e26))
+        truths = np.logical_and(self.e_dens_array[:, 0] <= (
+            state[1] + 1e26), self.e_dens_array[:, 0] >= (state[1] - 1e26))
         if np.any(truths):
             indices = np.where(truths)
             index = indices[int(round(len(indices)/2, 0))]
@@ -200,8 +203,10 @@ class ProtonElectronNeutronFermiModel(Newtonian):
             return e_dens
         else:
             return "No Solution"
-            
-# Defines the structure of any gas with a Polytropic EoS
+
+# Defines the structure of any gas with a Polytropic EoS (White Dwarf)
+
+
 class PolytropeModel(Newtonian):
     def __init__(self, pressure_constant, polytropic_index, central_pressure):
         super().__init__(central_pressure)
@@ -357,7 +362,8 @@ def energy_function():
         energy_densities = np.append(
             energy_densities, energy_density)
         state[1] += step
-        print("Calculation", counter, "completed in", round(time.time() - start_time, 2), "s")
+        print("Calculation", counter, "completed in",
+              round(time.time() - start_time, 2), "s")
         print("Time elapsed:", round(time.time() - init_time, 2), "s")
         # print(round(counter*100/num, 2), "% complete")
         counter += 1
@@ -365,13 +371,13 @@ def energy_function():
 
 
 if __name__ == "__main__":
-    non_rel_wd_star = PolytropeModel(
-        K_WD_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
-    rel_wd_star = PolytropeModel(K_WD_REL, GAMMA_REL, MIN_PRESSURE)
-    non_rel_n_star = PolytropeModel(K_N_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
-    full_tov_n_star = TOVModel(MIN_PRESSURE)
+    # non_rel_wd_star = PolytropeModel(
+    #     K_WD_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
+    # rel_wd_star = PolytropeModel(K_WD_REL, GAMMA_REL, MIN_PRESSURE)
+    # non_rel_n_star = PolytropeModel(K_N_NON_REL, GAMMA_NON_REL, MIN_PRESSURE)
+    # full_tov_n_star = TOVModel(MIN_PRESSURE)
     tov_n_star = TOVModel2(MIN_PRESSURE)
-    full_newton_n_star = PureNeutronFermiModel(MIN_PRESSURE)
+    # full_newton_n_star = PureNeutronFermiModel(MIN_PRESSURE)
     star = tov_n_star
     if FULL_COMPUTATION:
         radii, masses, pressures = solve_range(
@@ -379,11 +385,12 @@ if __name__ == "__main__":
         calc.plot_pressure(pressures, radii/1000, masses, FILENAME, CROP)
         states = np.c_[radii/1000, masses]
         calc.save(pressures, states, FILENAME, METADATA)
-    elif FULL_COMPUTATION ==  "Energy":
+    elif FULL_COMPUTATION == "Energy":
         energy_function()
         path = calc.path_checker("energy_function", ".txt")
         data = plt.get_data(path, ",", 1, 0)
-        plt.plot_data(data, "energy_density_3", 1, "Pressure, Pa", 1, "Energy Density, Pa")
+        plt.plot_data(data, "energy_density_3", 1,
+                      "Pressure, Pa", 1, "Energy Density, Pa")
     else:
         radii, states = solve_individual(star, R_SPAN)
         # radius, mass = rory(radii, states, TOLERANCE)
