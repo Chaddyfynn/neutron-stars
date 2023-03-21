@@ -18,19 +18,20 @@ import calculator as calc
 import scipy.integrate as sci_int
 import scipy.optimize as sci_opt
 import time
+import plotter as plt
 
 # RK4 / Calculator Settings
 R_0 = 0.0001  # Initial Condition Radius, m
-R_F = 100_000  # Final Radius, m
+R_F = 50_000  # Final Radius, m
 R_SPAN = [R_0, R_F]  # Radii Span
 
 # System Settings
-MIN_PRESSURE = 1e29  # Minimum Central Pressure, Pa
-MAX_PRESSURE = 1e33  # Maximum Central Pressure, Pa
-NUM_STEPS = 10  # Number of Iterations (Plot Points on Graph)
+MIN_PRESSURE = 1e31  # Minimum Central Pressure, Pa
+MAX_PRESSURE = 1e32  # Maximum Central Pressure, Pa
+NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
 # Radius Root Finding Tolerance (Changes Meaning According to Root Finding Algorithm)
-TOLERANCE = 1e15
+TOLERANCE = 0.001
 LOGARITHMIC = True  # Plot and Produce Points Logarithmically? (Boolean)
 if LOGARITHMIC:
     P_EVAL = np.logspace(np.log10(MIN_PRESSURE), np.log10(
@@ -52,10 +53,10 @@ EPS_P_0 = np.power(con.m_p, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
                                                        np.power(con.hbar, 3))  # Neutron Star Energy Density Constant, J m^-3
 
 # Save and Graph Settings
-FILENAME = "Neutron_Star_Range"  # Graph and Text File Desired Name
+FILENAME = "Efficient_Star_Tests"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
-FULL_COMPUTATION = 0  # Compute over central pressure range?
+FULL_COMPUTATION = False  # Compute over central pressure range? (0 to generate e_dens array)
 PLOT_INDIVIDUAL = False  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
 METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE,
@@ -130,7 +131,9 @@ class ProtonElectronNeutronFermiModel(Newtonian):
     def __init__(self, central_pressure):
         super().__init__(central_pressure)
         self.last_solution = [0, 0, 0]
-
+        self.e_dens_array = np.genfromtxt(".\\important_saves\\energy_function_combined_append.txt", dtype=float,
+                                          comments='#', delimiter=',', skip_header=1)
+        
     def proton_pressure(self, x):
         return EPS_P_0/24 * ((2 * np.power(x, 3) - 3 * x) *
                              np.power(1 + np.power(x, 2), 1/2) + 3 * np.arcsinh(x))
@@ -168,14 +171,36 @@ class ProtonElectronNeutronFermiModel(Newtonian):
 
     def energy_density_calc(self, state):
         mass, pressure = state
-        solution = sci_opt.root(self.fermi_pressure_calc, self.last_solution,
-                                args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
-        x = solution.x
-        print("Solution Found", x)
-        self.last_solution = x
-        return self.energy_density(x)
-
-
+        potential_solution = self.efficient_energy_density_calc(state)
+        if potential_solution ==  "No Solution":
+            print("No solution in self.e_dens_array")
+            solution = sci_opt.root(self.fermi_pressure_calc, self.last_solution,
+                                    args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
+            x = solution.x
+            e_dens = self.energy_density(x)
+            self.last_solution = x
+            file=open(".\\important_saves\\energy_function_combined_append.txt",'a')
+            output_array=np.c_[state[1],e_dens]
+            print(output_array)
+            np.savetxt(file, output_array, delimiter=",")
+            file.close()
+        else:
+            # print("Efficient solution")
+            e_dens = potential_solution
+        return e_dens
+    
+    def efficient_energy_density_calc(self, state):
+        truths = np.logical_and(self.e_dens_array[:, 0] <= (state[1] + 1e26), self.e_dens_array[:,0] >= (state[1] - 1e26))
+        if np.any(truths):
+            indices = np.where(truths)
+            index = indices[int(round(len(indices)/2, 0))]
+            e_dens = self.e_dens_array[index, 1]
+            if len(e_dens) > 1:
+                e_dens = e_dens[0]
+            return e_dens
+        else:
+            return "No Solution"
+            
 # Defines the structure of any gas with a Polytropic EoS
 class PolytropeModel(Newtonian):
     def __init__(self, pressure_constant, polytropic_index, central_pressure):
@@ -229,11 +254,15 @@ class TOVModel2(ProtonElectronNeutronFermiModel):
         sq_radius = np.power(radius, 2)
         cb_radius = np.power(radius, 3)
         e_dens = self.energy_density_calc(state)
+        if e_dens == 0:
+            e_dens = 1e-11
+        if mass == 0:
+            mass = 1e-11
         c_2 = np.power(con.c, 2)
         term_3 = np.power(1 - 2 * con.G * (mass) / (c_2 * radius), -1)
         if term_3 < 0:
             print("Imaginary Solution")
-            return np.array([0, 0])
+            # return np.array([0, 0])
         dp_dr = -1 * con.G * e_dens * (mass) / (c_2 * sq_radius) * \
             (1 + pressure/e_dens) * (1 + (4 * np.pi * cb_radius * pressure)/((mass) * c_2)) * \
             term_3
@@ -249,8 +278,11 @@ def solve_individual(body, r_span):
                                  vectorized=True, args=None, max_step=1000)
     print("Calculation finished in", round(time.time() - start_time, 2), "s")
     radii = solution['t']
+    #print("Radii", radii)
     masses = solution['y'][0]
+    #print("Masses", masses)
     pressures = solution['y'][1]
+    #print("Pressures", pressures)
     states = masses, pressures
     return radii, states
 
@@ -309,18 +341,26 @@ def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
 def energy_function():
     model = ProtonElectronNeutronFermiModel(0)
     init_pressure = float(0)
-    final_pressure = float(1e25)
-    step = float(1e23)
+    final_pressure = float(1e29)
+    step = float(1e25)
+    num = (final_pressure - init_pressure) / step
     state = np.array([0, init_pressure])
     pressures = np.zeros((0, 1))
     energy_densities = np.zeros((0, 1))
     momenta = np.zeros((0, 3))
+    counter = 1
+    init_time = time.time()
     while state[1] <= final_pressure:
+        start_time = time.time()
         pressures = np.append(pressures, state[1])
         energy_density = model.energy_density_calc(state)
         energy_densities = np.append(
             energy_densities, energy_density)
         state[1] += step
+        print("Calculation", counter, "completed in", round(time.time() - start_time, 2), "s")
+        print("Time elapsed:", round(time.time() - init_time, 2), "s")
+        # print(round(counter*100/num, 2), "% complete")
+        counter += 1
     calc.save(pressures, energy_densities, "energy_function", [])
 
 
@@ -339,12 +379,15 @@ if __name__ == "__main__":
         calc.plot_pressure(pressures, radii/1000, masses, FILENAME, CROP)
         states = np.c_[radii/1000, masses]
         calc.save(pressures, states, FILENAME, METADATA)
-    elif FULL_COMPUTATION == 0:
+    elif FULL_COMPUTATION ==  "Energy":
         energy_function()
+        path = calc.path_checker("energy_function", ".txt")
+        data = plt.get_data(path, ",", 1, 0)
+        plt.plot_data(data, "energy_density_3", 1, "Pressure, Pa", 1, "Energy Density, Pa")
     else:
         radii, states = solve_individual(star, R_SPAN)
         # radius, mass = rory(radii, states, TOLERANCE)
-        radius, mass = root(radii, states, TOLERANCE)
-        # radius, mass = calc.root_prev(radii, states, TOLERANCE)
+        # radius, mass = root(radii, states, TOLERANCE)
+        radius, mass = calc.root_prev(radii, states, TOLERANCE)
         calc.plot_root(radii/1000, states, FILENAME, radius/1000)
         calc.save(radii/1000, states, FILENAME, METADATA)
