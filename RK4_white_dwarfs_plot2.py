@@ -19,9 +19,9 @@ m_vals = []
 rval, mval = solve.main(p)
 
 
-for i in range(int(1e23), int(5e25), int(2.5e24)):
+for i in range(int(1e23), int(5e25), int(1e23)):
     rval, mval = solve.main(i)
-    p0.append(i*10)
+    p0.append(np.log(float(i*10)))
     r_vals.append(rval/1000)
     m_vals.append(mval)
 
