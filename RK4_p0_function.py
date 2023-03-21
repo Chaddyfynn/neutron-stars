@@ -12,7 +12,7 @@ import scipy.integrate as sci_int
 
 r_0 = 0.001
 r_max = 12000
-t_span = [0.001, 18000000]
+t_span = [0.001, 19000000]
 state_initial = 2.2e22/10
 
 
