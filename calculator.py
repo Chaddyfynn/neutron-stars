@@ -362,6 +362,28 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, tol
 
     return pressures, radii_output, mass_output
 
+def root(radii, states, tolerance):
+    masses, pressures = states
+    loc_array = np.where(pressures <= tolerance)
+    prime_index = loc_array[0]
+    # prime_index = indices[0]
+    if len(radii[prime_index]) == 0:
+        print("No roots found ...")
+        return 0, 0
+    else:
+        radius, mass, pressure = radii[prime_index][0], masses[prime_index][0], pressures[prime_index]
+        print("Root found at", radius /
+              1000, "km and", mass, "M0.")
+        return radius, mass
+
+
+def rory(radius, state, tolerance):
+    e = np.where(state[1] == min(state[1]))
+    i = e[0][0]
+    r_val = radius[i]
+    m_val = state[0][i]
+    return r_val, m_val
+
 
 if __name__ == "__main__":
     main()
