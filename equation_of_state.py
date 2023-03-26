@@ -10,6 +10,7 @@ import scipy.constants as con
 import scipy.optimize as sci_opt
 import time
 import calculator as calc
+import multiprocessing as mp
 
 # Thermodynamic Constants
 EPS_N_0 = np.power(con.m_n, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
@@ -19,9 +20,11 @@ EPS_E_0 = np.power(con.m_e, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
 EPS_P_0 = np.power(con.m_p, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
                                                        np.power(con.hbar, 3))  # Neutron Star Energy Density Constant, J m^-3
 
+
 class PureNeutronFermiModel():
     def __init__(self):
         super(PureNeutronFermiModel, self).__init__()
+
     def fermi_pressure(self, x, pressure):
         # print("Calculating at", pressure)
         return EPS_N_0/24 * ((2 * np.power(x, 3) - 3 * x) *
@@ -102,9 +105,18 @@ class ProtonElectronNeutronFermiModel():
             e_dens = potential_solution
         return e_dens
 
+    def forced_energy_density_calc(self, state):
+        mass, pressure = state
+        solution = sci_opt.root(self.fermi_pressure_calc, self.last_solution,
+                                args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
+        x = solution.x
+        e_dens = self.energy_density(x)
+        self.last_solution = x
+        return e_dens
+
     def efficient_energy_density_calc(self, state):
         truths = np.logical_and(self.e_dens_array[:, 0] <= (
-            state[1] + 1e27), self.e_dens_array[:, 0] >= (state[1] - 1e27))
+            state[1] + 1e26), self.e_dens_array[:, 0] >= (state[1] - 1e26))
         if np.any(truths):
             indices = np.where(truths)
             index = indices[int(round(len(indices)/2, 0))]
@@ -134,30 +146,36 @@ class PolytropeModel():
         return np.power(pressure / self.k, 1 / self.gamma)
 
     # radius = [radius (m)], state = [mass (kg), pressure (Pa)]
-    
 
-def energy_function():
-    model = ProtonElectronNeutronFermiModel(0)
-    init_pressure = float(0)
-    final_pressure = float(1e29)
-    step = float(1e25)
-    num = (final_pressure - init_pressure) / step
-    state = np.array([0, init_pressure])
+
+def loop(pressure):
+    start_time = time.time()
+    model = ProtonElectronNeutronFermiModel()
+    state = np.array([0, pressure])
+    mass, pressure = state
+    solution = sci_opt.root(model.fermi_pressure_calc, [0, 0, 0],
+                            args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
+    x = solution.x
+    e_dens = model.energy_density(x)
+    eval_time = time.time() - start_time
+    print(
+        f"Finished pressure {pressure:.3g} Pa in {eval_time:.3f} s", flush=True)
+    return e_dens
+
+
+def energy_function(init=0, fin=1e30, num=100):
+    global loop
+    # model = ProtonElectronNeutronFermiModel()
+    init_pressure = float(init)
+    final_pressure = float(fin)
     pressures = np.zeros((0, 1))
     energy_densities = np.zeros((0, 1))
-    momenta = np.zeros((0, 3))
     counter = 1
     init_time = time.time()
-    while state[1] <= final_pressure:
-        start_time = time.time()
-        pressures = np.append(pressures, state[1])
-        energy_density = model.energy_density_calc(state)
-        energy_densities = np.append(
-            energy_densities, energy_density)
-        state[1] += step
-        print("Calculation", counter, "completed in",
-              round(time.time() - start_time, 2), "s")
-        print("Time elapsed:", round(time.time() - init_time, 2), "s")
-        # print(round(counter*100/num, 2), "% complete")
-        counter += 1
-    calc.save(pressures, energy_densities, "energy_function", [])
+    p_evals = np.logspace(np.log10(init_pressure),
+                          np.log10(final_pressure), num)
+    with mp.Pool() as pool:
+        energy_densities_vanilla = pool.map(loop, p_evals)
+
+    print("Time Taken:", round(time.time() - init_time, 2), "s")
+    calc.save(pressures, energy_densities, "energy_density_mk2", [])

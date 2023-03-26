@@ -319,7 +319,8 @@ def root_prev(radii, states, tolerance):
     return 0, 0
 
 
-def fixed_limit(radii, states, tolerance):
+def mass_saturation(radii, states, tolerance):
+
     # code go here
     return None
 
@@ -361,6 +362,7 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, tol
         plot_times(iterations, times)
 
     return pressures, radii_output, mass_output
+
 
 def root(radii, states, tolerance):
     masses, pressures = states

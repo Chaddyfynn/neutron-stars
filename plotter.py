@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import calculator as calc
 
 # File Settings
-FILENAME = "energy_function_combined_append"
+FILENAME = "energy_density_mk2"
 DIRECTORY = ".\\saves\\"
 EXTENSION = ".txt"
 DELIMITER = ","
@@ -50,17 +50,23 @@ def plot_data(data, ideal_filename, ind_var, ind_units, dep_var, dep_units):
     #     ind_var_plot = data[:, col]
     ind_var_plot = data[:, 0]
     dep_var_plot = data[:, 1]
+    # dep_var_2_plot = data[:, 2]
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 5))
-    # if len(dep_units > 1):
-    #     ax2 = ax.twinx()
+    # ax2 = ax.twinx()
     ax.set(xlabel=ind_units[0])
     ax.set(ylabel=dep_units[0])
     ax.plot(ind_var_plot, dep_var_plot, color="red",
             marker=".", linestyle='None')
+    # ax2.plot(ind_var_plot, dep_var_2_plot,
+    #          color="green", marker=".", linestyle="None")
     ax.set_xscale("log")
     ax.set_yscale("log")
+    # ax2.set_yscale("log")
+    # ax2.set_xscale("linear")
     ax.legend(loc='upper left')
+    # ax2.legend(loc='upper right')
     ax.grid()
+    # ax2.grid()
     plt.tight_layout()
     filename = calc.path_checker(ideal_filename, ".png")
     print("Saving figure...")
