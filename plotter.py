@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import calculator as calc
 
 # File Settings
-FILENAME = "energy_density_mk2"
+FILENAME = "energy_density_mk3"
 DIRECTORY = ".\\saves\\"
 EXTENSION = ".txt"
 DELIMITER = ","

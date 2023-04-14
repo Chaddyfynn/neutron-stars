@@ -25,4 +25,4 @@ def energy_density(init=1e24, fin=1e34, num=100):
     with Pool() as pool:
         energy_densities = pool.map(eos.loop, p_evals)
     energy_densities = np.array(energy_densities)
-    calc.save(p_evals, energy_densities, "energy_density_mk2", [])
+    calc.save(p_evals, energy_densities, "energy_density_mk3", [])

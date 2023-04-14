@@ -46,6 +46,8 @@ class ProtonElectronNeutronFermiModel():
     def __init__(self):
         super(ProtonElectronNeutronFermiModel, self).__init__()
         self.last_solution = [0, 0, 0]
+        self.last_P_e = [0, 0]
+        self.last_N = [0]
         self.e_dens_array = np.genfromtxt(".\\important_saves\\energy_function_combined_append.txt", dtype=float,
                                           comments='#', delimiter=',', skip_header=1)
 
@@ -61,13 +63,27 @@ class ProtonElectronNeutronFermiModel():
         return EPS_E_0/24 * ((2 * np.power(x, 3) - 3 * x) *
                              np.power(1 + np.power(x, 2), 1/2) + 3 * np.arcsinh(x))
 
-    def fermi_pressure(self, x):
+    def fermi_pressure_all(self, x):
         return self.proton_pressure(x[0]) + self.neutron_pressure(x[1]) + self.electron_pressure(x[2])
+    
+    def fermi_pressure_P_e(self, x):
+        return self.proton_pressure(x[0]) + self.electron_pressure(x[1])
+    
+    def fermi_pressure_N(self, x):
+        return self.neutron_pressure(x[0])
 
-    def fermi_pressure_calc(self, x, pressure):
-        scalar = self.fermi_pressure(x) - pressure
+    def fermi_pressure_calc_all(self, x, pressure):
+        scalar = self.fermi_pressure_all(x) - pressure
         scalar = scalar
         return np.array([scalar, scalar, scalar])
+    
+    def fermi_pressure_calc_P_e(self, x, pressure):
+        scalar = self.fermi_pressure_P_e(x) - pressure
+        return np.array([scalar, scalar])
+    
+    def fermi_pressure_calc_N(self, x, pressure):
+        scalar = self.fermi_pressure_N(x) - pressure
+        return np.array([scalar])
 
     def proton_energy_density(self, x):
         return EPS_P_0/8 * ((2 * np.power(x, 3) + x) * np.power(1 +
@@ -83,17 +99,28 @@ class ProtonElectronNeutronFermiModel():
 
     def energy_density(self, x):
         return self.proton_energy_density(x[0]) + self.neutron_energy_density(x[1]) + self.electron_energy_density(x[2])
+    
+    def energy_density_P_e(self, x):
+        return self.proton_energy_density(x[0]) + self.electron_energy_density(x[1])
+    
+    def energy_density_N(self, x):
+        return self.neutron_energy_density(x[0])
 
     def energy_density_calc(self, state):
         mass, pressure = state
         potential_solution = self.efficient_energy_density_calc(state)
         if potential_solution == "No Solution":
-            print("No solution in self.e_dens_array")
-            solution = sci_opt.root(self.fermi_pressure_calc, self.last_solution,
-                                    args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
-            x = solution.x
-            e_dens = self.energy_density(x)
-            self.last_solution = x
+            print(f"No solution in self.e_dens_array")
+            if pressure <= 3.038e23:
+                solution = sci_opt.root(self.fermi_pressure_calc_P_e, self.last_P_e, args=(pressure), method="broyden1", jac=False)
+                x = solution.x
+                e_dens = self.energy_density_P_e(x)
+                self.last_P_e = x
+            else:
+                solution = sci_opt.root(self.fermi_pressure_calc_N, self.last_N, args=(pressure), method="broyden1", jac=False)
+                x = solution.x
+                e_dens = self.energy_density_N(x)
+                self.last_N = x
             file = open(
                 ".\\important_saves\\energy_function_combined_append.txt", 'a')
             output_array = np.c_[state[1], e_dens]
@@ -107,16 +134,21 @@ class ProtonElectronNeutronFermiModel():
 
     def forced_energy_density_calc(self, state):
         mass, pressure = state
-        solution = sci_opt.root(self.fermi_pressure_calc, self.last_solution,
-                                args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
-        x = solution.x
-        e_dens = self.energy_density(x)
-        self.last_solution = x
+        if pressure <= 3.038e23:
+            solution = sci_opt.root(self.fermi_pressure_calc_P_e, self.last_P_e, args=(pressure), method="broyden1", jac=False)
+            x = solution.x
+            e_dens = self.energy_density_P_e(x)
+            self.last_P_e = x
+        else:
+            solution = sci_opt.root(self.fermi_pressure_calc_N, self.last_N, args=(pressure), method="broyden1", jac=False)
+            x = solution.x
+            e_dens = self.energy_density_N(x)
+            self.last_N = x
         return e_dens
 
     def efficient_energy_density_calc(self, state):
         truths = np.logical_and(self.e_dens_array[:, 0] <= (
-            state[1] + 1e26), self.e_dens_array[:, 0] >= (state[1] - 1e26))
+            state[1] + 1e15), self.e_dens_array[:, 0] >= (state[1] - 1e15))
         if np.any(truths):
             indices = np.where(truths)
             index = indices[int(round(len(indices)/2, 0))]
@@ -153,10 +185,18 @@ def loop(pressure):
     model = ProtonElectronNeutronFermiModel()
     state = np.array([0, pressure])
     mass, pressure = state
-    solution = sci_opt.root(model.fermi_pressure_calc, [0, 0, 0],
-                            args=(pressure), method='broyden1', jac=False)  # broyden1,2, anderson okay but slow, df-sane okay but different to broyden
-    x = solution.x
-    e_dens = model.energy_density(x)
+    if pressure <= 3.038e23:
+        print("Calculating below critical pressure", flush=True)
+        solution = sci_opt.root(model.fermi_pressure_calc_P_e, [0,0], args=(pressure), method="broyden1", jac=False)
+        x = solution.x
+        e_dens = model.energy_density_P_e(x)
+        model.last_P_e = x
+    else:
+        print("Calculating above critical pressure", flush=True)
+        solution = sci_opt.root(model.fermi_pressure_calc_N, [0], args=(pressure), method="broyden1", jac=False)
+        x = solution.x
+        e_dens = model.energy_density_N(x)
+        model.last_N = x
     eval_time = time.time() - start_time
     print(
         f"Finished pressure {pressure:.3g} Pa in {eval_time:.3f} s", flush=True)
