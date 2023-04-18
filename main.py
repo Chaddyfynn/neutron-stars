@@ -29,8 +29,8 @@ R_SPAN = [R_0, R_F]  # Radii Span
 
 # System Settings
 MIN_PRESSURE = 1e28  # Minimum Central Pressure, Pa 1e28
-MAX_PRESSURE = 1e38  # Maximum Central Pressure, Pa 1e46
-NUM_STEPS = 10  # Number of Iterations (Plot Points on Graph)
+MAX_PRESSURE = 1e46  # Maximum Central Pressure, Pa 1e46
+NUM_STEPS = 20  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
 LOGARITHMIC = True  # Plot and Produce Points Logarithmically? (Boolean)
 if LOGARITHMIC:
@@ -44,7 +44,7 @@ else:
 TOLERANCE = 0.0001
 
 # Save and Graph Settings
-FILENAME = "Range_Test"  # Graph and Text File Desired Name
+FILENAME = "Forced_Test"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
 # Compute over central pressure range? (0 to generate e_dens array)
@@ -117,36 +117,41 @@ def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
         elif body.p0 > 1e29 and body.p0 <= 1e30:
             r_span = [r_0, 45_000] 
         elif body.p0 > 1e30 and body.p0 <= 5e30:
-            r_span = [r_0, 37_000]
+            r_span = [r_0, 32_000]
         elif body.p0 > 5e30 and body.p0 <= 1e31:
             r_span = [r_0, 31_000]
         elif body.p0 > 1e31 and body.p0 <= 1e32:
-            r_span = [r_0, 25_000]
+            r_span = [r_0, 24_000]
         elif body.p0 > 1e32 and body.p0 <= 1e33:
-            r_span = [r_0, 20_000]
+            r_span = [r_0, 19_000]
         elif body.p0 > 1e33 and body.p0 <= 1e34:
             r_span = [r_0, 14_000]
         elif body.p0 > 1e34 and body.p0 <= 1e35:
-            r_span = [r_0, 10_300]
+            r_span = [r_0, 10_000]
         elif body.p0 > 1e35 and body.p0 <= 1e36:
-            r_span = [r_0, 6300]
+            r_span = [r_0, 6_300]
         elif body.p0 > 1e36 and body.p0 <= 1e37:
-            r_span = [r_0, 5000]
+            r_span = [r_0, 4_800]
         elif body.p0 > 1e37 and body.p0 <= 1e38:
-            r_span = [r_0, 6000]
+            r_span = [r_0, 7_000]
         elif body.p0 > 1e38 and body.p0 <= 1e39:
-            r_span = [r_0, 7000]   
+            r_span = [r_0, 7_000]   
         elif body.p0 > 1e39 and body.p0 <= 1e40:
-            r_span = [r_0, radius]
-            
+            r_span = [r_0, 7_000]
         elif body.p0 > 1e40 and body.p0 <= 1e41:
-            r_span = [r_0, radius]
+            r_span = [r_0, 6_900]
         elif body.p0 > 1e41 and body.p0 <= 1e42:
-            r_span = [r_0, radius]
+            r_span = [r_0, 6_500]
         elif body.p0 > 1e42 and body.p0 <= 1e43:
-            r_span = [r_0, radius]
+            r_span = [r_0, 6_200]
+        elif body.p0 > 1e43 and body.p0 <= 1e44:
+            r_span = [r_0, 6_200]
+        elif body.p0 > 1e44 and body.p0 <= 1e45:
+            r_span = [r_0, 6_100]
+        elif body.p0 > 1e44 and body.p0 <= 1e45:
+            r_span = [r_0, 6_100]
         else:
-            r_span = [r_0, radius]
+            r_span = [r_0, 6_300]
     return radii_1, masses, pressures
 
 
