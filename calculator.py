@@ -318,10 +318,47 @@ def root_prev(radii, states, tolerance):
     print("No Roots Found")
     return 0, 0
 
+def root_scale(radii, states, tolerance):
+    masses, pressures = states
+    for i in range(len(pressures)):
+        if pressures[i]/pressures[0] <= tolerance:
+            radius, mass = radii[i], masses[i]
+            break
+    else:
+        # radius, mass = radii[-1], masses[-1]
+        radius, mass = radii[0], masses[0]
+    print("Roots Found at R = ", round(radius, 1),
+          " km and M = ", round(mass, 1)/M0, " M0")
+    return radius, mass
+        
+def root_scale_mass(radii, states, tolerance):
+    masses, pressures = states
+    for i in range(len(pressures)):
+        if (masses[-1]-masses[i])/masses[-1] <= tolerance:
+            radius, mass = radii[i], masses[i]
+            break
+    else:
+        # radius, mass = radii[-1], masses[-1]
+        radius, mass = radii[0], masses[0]
+    print("Roots Found at R = ", round(radius, 1),
+          " km and M = ", round(mass, 1)/M0, " M0")
+    return radius, mass
 
-def fixed_limit(radii, states, tolerance):
-    # code go here
-    return None
+
+def mass_saturation(radii, states, tolerance):
+    masses, pressures = states
+    for i in range(int(round(len(masses)/5, 0)), len(masses) + 3):
+        m0, m1, m2, m3 = masses[i], masses[i-1], masses[i-2], masses[i-3]
+        if (m3 - m2) <= tolerance and (m2-m1) <= tolerance and (m1-m0) <= tolerance:
+            radius = radii[i]
+            mass = masses[i]
+            break
+    else:
+        radius = 0
+        mass = 0
+    print("Roots Found at R = ", round(radius, 1),
+          " km and M = ", round(mass, 1), " M0")
+    return radius, mass
 
 
 def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, tolerance, filename, plot_time, plot_individual):
@@ -361,6 +398,7 @@ def iterate(grad, r_0, step, num, min_pressure, max_pressure, pressure_step, tol
         plot_times(iterations, times)
 
     return pressures, radii_output, mass_output
+
 
 def root(radii, states, tolerance):
     masses, pressures = states

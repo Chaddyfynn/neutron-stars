@@ -1,5 +1,5 @@
 # Compact Stars Numerical Calculator
-This GIT contains the python code to numerically evaluate the equations of hydrostatic equilibrium for compact stars in Newtonian gravity and general relativity. There are five models available to use: Newtonian Polytropic, Newtonian Fermi Gas of Neutrons, TOV Polytropic, TOV Fermi Gas of Neutrons, and TOV Fermi Gas of Neutrons Protons and Electrons. 
+This GIT contains the python code to numerically evaluate the equations of hydrostatic equilibrium for compact stars in Newtonian gravity and general relativity. There are five models available to use: Newtonian Polytropic, Newtonian Fermi Gas of Neutrons, TOV Polytropic, TOV Fermi Gas of Neutrons, and TOV Fermi Gas of Neutrons Protons and Electrons.
 
 ## Main File //  main.py
 
@@ -25,7 +25,7 @@ NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 LOGARITHMIC = True  # Plot and Produce Points Logarithmically? (Boolean)
 ```
 
-The third section focuses on how the star's radius and mass are calculated from the solved ODEs. The exact meaning of TOLERANCE changes from method to method, but it loosely describes how selective the algorithm must be to choose a max radius and mass. METHOD is currently not used, but will be used in the future to make it easier to select which radii-finding method is to be used. Expected options are: 
+The third section focuses on how the star's radius and mass are calculated from the solved ODEs. The exact meaning of TOLERANCE changes from method to method, but it loosely describes how selective the algorithm must be to choose a max radius and mass. METHOD is currently not used, but will be used in the future to make it easier to select which radii-finding method is to be used. Expected options are:
 
 "normal": (radius and mass chosen when pressure drops below TOLERANCE * pressure range in output data)
 
@@ -43,7 +43,7 @@ TOLERANCE = 0.001
 METHOD = "normal" # Options are "normal", "min", "first", "second", "saturation"
 ```
 
-The final section focuses on how the data is generated, visualised, and saved. FILENAME is a string which contains the desired name for the output data text file and graph. The actual filename will vary depending on what is already saved in the 'saves' folder. PLOT_TIME is a legacy variable that was once used to specify whether a second graph should be generated containing the function evaluation times for different iterations of solving the ODE. This was used to test the code and check its efficiency, but since the code has been rewritten from scratch, its functionality has not been reincluded. FULL_COMPUTATION is a boolean variable that established whether or not the ODEs should be solved for one central pressure (False) or over the range of central pressures outlined in the second section (True). PLOT_INDIVIDUAL chooses whether or not to plot a graph of every intermediate solution for the ODE at each central pressure if FULL_COMPUTATION is True. If FULL_COMPUTATION is False, then PLOT_INDIVIDUAL is useless. PLOT_INDIVIDUAL is very useful for seeing whether or not TOLERANCE is set correctly - though this information is also printed to the console. CROP is a variable that selects the left crop on the x-axis for the FULL_COMPUTATION = True graph. Finally, 
+The final section focuses on how the data is generated, visualised, and saved. FILENAME is a string that contains the desired name for the output data text file and graph. The actual filename will vary depending on what is already saved in the 'saves' folder. PLOT_TIME is a legacy variable that was once used to specify whether a second graph should be generated containing the function evaluation times for different iterations of solving the ODE. This was used to test the code and check its efficiency, but since the code has been rewritten from scratch, its functionality has not been reincluded. FULL_COMPUTATION is a generally (but not always) boolean variable that established whether or not the ODEs should be solved for one central pressure (False) or over the range of central pressures outlined in the second section (True). A third option exists, and that is if PLOT_COMPUTATION = 2, then the program will generate and save energy density data for a proton-neutron-electron fermi gas. PLOT_INDIVIDUAL chooses whether or not to plot a graph of every intermediate solution for the ODE at each central pressure if FULL_COMPUTATION is True. If FULL_COMPUTATION is False, then PLOT_INDIVIDUAL is useless. PLOT_INDIVIDUAL is very useful for seeing whether or not TOLERANCE is set correctly - though this information is also printed to the console. CROP is a variable that selects the left crop on the x-axis for the FULL_COMPUTATION = True graph. Finally, METADATA is a list of any of the previously mentioned variables that one would want saved in the footer of the output text file.
 
 ```python
 # Save and Graph Settings
@@ -57,3 +57,5 @@ CROP = 0  # Left Crop for Full computation, 5e23 for rel
 METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE,
             NUM_STEPS]  # Desired save metadata
 ```
+
+There is a small additional section of constants that represent the polytropic constants for white dwarfs and neutron stars. The comments are self-explanatory, and these constants can be used when creating an object from a child class of the polytropic class.
