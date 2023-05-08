@@ -35,10 +35,10 @@ K = con.hbar * con.c / (12 * np.pi**2) * \
 GAMMA = 4/3  # Polytropic Index, No Units
 
 # Save and Graph Settings
-FILENAME = "White_Dwarf_Rel_Polytrope"  # Graph and Text File Desired Name
+FILENAME = "WD_REL_REPEAT"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
-FULL_COMPUTATION = True
+FULL_COMPUTATION = False
 PLOT_INDIVIDUAL = False  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
 METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
@@ -53,8 +53,15 @@ def main():
         solve.save(pressures, states, FILENAME, METADATA)
     else:
         radii, states = solve.rk4(grad, R_0, STATE_0, STEP, NUM)
-        solve.plot(radii, states, FILENAME)
-        solve.save(radii, states, FILENAME, METADATA)
+        new_states = [[],[]]
+        for i in range(len(states)):
+            new_states[0].append(states[i][0])
+            new_states[1].append(states[i][1])
+        new_states = np.array(new_states)
+        radii = radii/1000
+        radius, mass = solve.root_prev(radii, new_states, TOLERANCE)
+        solve.plot_root(radii, new_states, FILENAME, radius)
+        # solve.save(radii, new_states, FILENAME, METADATA)
     return None
 
 

@@ -20,9 +20,9 @@ STEP = R_F / NUM  # Step, dx
 
 # System Settings
 # STATE_0 = np.array([0, 1e32])  # Initial State at R_0, [kg, Pa] uni rk4
-STATE_0 = [0, 1e32]  # Initial State at R_0, [kg, Pa] scipy
-MIN_PRESSURE = 9e29  # Minimum Central Pressure, Pa
-MAX_PRESSURE = 2e32  # Maximum Central Pressure, Pa
+STATE_0 = [0, 1e29]  # Initial State at R_0, [kg, Pa] scipy
+MIN_PRESSURE = 1e29  # Minimum Central Pressure, Pa
+MAX_PRESSURE = 1e44  # Maximum Central Pressure, Pa
 NUM_STEPS = 100  # Number of Iterations (Plot Points on Graph)
 PRESSURE_STEP = (MAX_PRESSURE - MIN_PRESSURE) / NUM_STEPS
 TOLERANCE = 0.00001  # 0 - 1 factor of max dp/dr root point tolerance (ideal=0)
@@ -41,6 +41,7 @@ FILENAME = "Neutron_Star_Non_Rel_Polytrope"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
 FULL_COMPUTATION = True
+
 PLOT_INDIVIDUAL = False  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
 METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
@@ -56,8 +57,16 @@ def main():
     else:
         # radii, states = solve.rk4(grad, R_0, STATE_0, STEP, NUM)
         radii, states = solve.scipy(grad, R_0, STATE_0, STEP, NUM)
-        solve.plot(radii/1000, states, FILENAME)
-        solve.save(radii/1000, states, FILENAME, METADATA)
+        # new_states = [[],[]]
+        # for i in range(len(states)):
+        #     new_states[0].append(states[i][0])
+        #     new_states[1].append(states[i][1])
+        # new_states = np.array(new_states)
+        radii = radii/1000
+        radius, mass = solve.root_prev(radii, states, TOLERANCE)
+        print(mass)
+        solve.plot_root(radii, states, FILENAME, radius)
+        # solve.save(radii/1000, states, FILENAME, METADATA)
     return None
 
 

@@ -11,6 +11,7 @@ import scipy.optimize as sci_opt
 import time
 import calculator as calc
 import multiprocessing as mp
+from star import Star
 
 # Thermodynamic Constants
 EPS_N_0 = np.power(con.m_n, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
@@ -21,9 +22,9 @@ EPS_P_0 = np.power(con.m_p, 4) * np.power(con.c, 5) / (np.power(np.pi, 2) *
                                                        np.power(con.hbar, 3))  # Neutron Star Energy Density Constant, J m^-3
 
 
-class PureNeutronFermiModel():
+class PureNeutronFermiModel(Star):
     def __init__(self):
-        super(PureNeutronFermiModel, self).__init__()
+        super().__init__()
 
     def fermi_pressure(self, x, pressure):
         # print("Calculating at", pressure)
@@ -42,9 +43,9 @@ class PureNeutronFermiModel():
         return self.fermi_energy_density(x)
 
 
-class ProtonElectronNeutronFermiModel():
+class ProtonElectronNeutronFermiModel(Star):
     def __init__(self):
-        super(ProtonElectronNeutronFermiModel, self).__init__()
+        super().__init__()
         self.last_solution = [0, 0, 0]
         self.last_P_e = [0, 0]
         self.last_N = [0]
@@ -109,27 +110,27 @@ class ProtonElectronNeutronFermiModel():
     def energy_density_calc(self, state):
         mass, pressure = state
         potential_solution = self.efficient_energy_density_calc(state)
-        if potential_solution == "No Solution":
-            print(f"No solution in self.e_dens_array")
-            if pressure <= 3.038e23:
-                solution = sci_opt.root(self.fermi_pressure_calc_P_e, self.last_P_e, args=(pressure), method="broyden1", jac=False)
-                x = solution.x
-                e_dens = self.energy_density_P_e(x)
-                self.last_P_e = x
-            else:
-                solution = sci_opt.root(self.fermi_pressure_calc_N, self.last_N, args=(pressure), method="broyden1", jac=False)
-                x = solution.x
-                e_dens = self.energy_density_N(x)
-                self.last_N = x
-            file = open(
-                ".\\important_saves\\energy_function_combined_append.txt", 'a')
-            output_array = np.c_[state[1], e_dens]
-            print(output_array)
-            np.savetxt(file, output_array, delimiter=",")
-            file.close()
+        # if potential_solution == "No Solution":
+        # print(f"No solution in self.e_dens_array")
+        if pressure <= 3.038e23:
+            solution = sci_opt.root(self.fermi_pressure_calc_P_e, self.last_P_e, args=(pressure), method="broyden1", jac=False)
+            x = solution.x
+            e_dens = self.energy_density_P_e(x)
+            self.last_P_e = x
         else:
-            print("Table solution exists")
-            e_dens = potential_solution
+            solution = sci_opt.root(self.fermi_pressure_calc_N, self.last_N, args=(pressure), method="broyden1", jac=False)
+            x = solution.x
+            e_dens = self.energy_density_N(x)
+            self.last_N = x
+        file = open(
+            ".\\important_saves\\energy_function_combined_append.txt", 'a')
+        output_array = np.c_[state[1], e_dens]
+        print(output_array)
+        np.savetxt(file, output_array, delimiter=",")
+        file.close()
+        # else:
+        #     print("Table solution exists")
+        #     e_dens = potential_solution
         return e_dens
 
     def forced_energy_density_calc(self, state):
@@ -162,9 +163,9 @@ class ProtonElectronNeutronFermiModel():
 # Defines the structure of any gas with a Polytropic EoS (White Dwarf)
 
 
-class PolytropeModel():
-    def __init__(self, pressure_constant, polytropic_index):
-        super(PolytropeModel, self).__init__()
+class PolytropeModel(Star):
+    def __init__(self, central_pressure, pressure_constant, polytropic_index):
+        super().__init__()
         self.k = pressure_constant  # Creates k property
         self.gamma = polytropic_index  # Creates gamma property
 

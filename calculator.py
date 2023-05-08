@@ -110,6 +110,8 @@ def plot_root(radii, states, ideal_filename, radius):
     ax1.axvline(radius, color='g')
     ax1.legend(loc='upper left')
     ax2.legend(loc='upper right')
+    ax1.set_yscale("log")
+    ax2.set_yscale("log")
     # Show and close the plot
     ax1.grid()
     # ax3.grid()

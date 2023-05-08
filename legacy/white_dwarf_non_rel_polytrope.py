@@ -16,7 +16,7 @@ STEP = 1000 / MULTIPLIER  # Step, dx
 NUM = 20000 * MULTIPLIER  # Number of Steps
 
 # System Settings
-STATE_0 = np.array([0, 2.2e21])
+STATE_0 = np.array([0, 2.20e21])
 MIN_PRESSURE = 1  # Minimum Central Pressure, Pa
 MAX_PRESSURE = 5e21  # Maximum Central Pressure, Pa
 NUM_STEPS = 30  # Number of Iterations (Plot Points on Graph)
@@ -33,9 +33,9 @@ K = con.hbar**2/(15*np.pi**2*con.m_e) * \
 GAMMA = 5/3  # Polytropic Index, No Units
 
 # Save and Graph Settings
-FILENAME = "White_Dwarf_Non_Rel_Polytrope"  # Graph and Text File Desired Name
+FILENAME = "WD_Repeat"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
-FULL_COMPUTATION = True
+FULL_COMPUTATION = False
 PLOT_INDIVIDUAL = False
 CROP = 0
 METADATA = [R_0, STEP, NUM, MIN_PRESSURE, MAX_PRESSURE, NUM_STEPS, K, GAMMA]
@@ -50,8 +50,15 @@ def main():
         solve.save(pressures, states, FILENAME, METADATA)
     else:
         radii, states = solve.rk4(grad, R_0, STATE_0, STEP, NUM)
-        solve.plot(radii, states, FILENAME)
-        solve.save(radii, states, FILENAME, METADATA)
+        new_states = [[],[]]
+        for i in range(len(states)):
+            new_states[0].append(states[i][0])
+            new_states[1].append(states[i][1])
+        new_states = np.array(new_states)
+        radii = radii/1000
+        radius, mass = solve.root_prev(radii, new_states, TOLERANCE)
+        solve.plot_root(radii, new_states, FILENAME, radius)
+        # solve.save(radii, new_states, FILENAME, METADATA)
     return None
 
 
