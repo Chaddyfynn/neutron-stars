@@ -21,6 +21,8 @@ import plotter as plt
 import models
 import equation_of_state as eos
 import energy_density_multithread as edm
+import getopt
+import sys
 
 # Numerical Methods / Calculator Settings
 R_0 = 0.0001  # Initial Condition Radius, m
@@ -48,7 +50,8 @@ FILENAME = "REPEAT"  # Graph and Text File Desired Name
 PLOT_TIME = False  # Plot Function Evaluation Times vs Pressure? (Boolean)
 # Compute for a range of central pressures (True), or one (False)
 # Compute over central pressure range? (0 to generate e_dens array)
-FULL_COMPUTATION = False  # True performs max radius & mass over pressure range, 2 generates energy density data, False produces single graph
+# True performs max radius & mass over pressure range, 2 generates energy density data, False produces single graph
+FULL_COMPUTATION = False
 PLOT_INDIVIDUAL = True  # Create graphs for each central pressure (False)
 CROP = 0  # Left Crop for Full computation, 5e23 for rel
 METADATA = [R_0, MIN_PRESSURE, MAX_PRESSURE,
@@ -114,6 +117,36 @@ def solve_range(body, max_pressure, pressure_step, tolerance, r_span, filename):
 
 
 if __name__ == "__main__":
+    # Remove 1st argument from the
+    # list of command line arguments
+    argumentList = sys.argv[1:]
+
+    # Options
+    options = "mpP:"
+
+    # Long options
+    long_options = ["Model", "Min_Pressure", "Max_Pressure"]
+
+    try:
+        # Parsing argument
+        arguments, values = getopt.getopt(argumentList, options, long_options)
+
+        # checking each argument
+        for currentArgument, currentValue in arguments:
+
+            if currentArgument in ("-h", "--Help"):
+                print("Displaying Help")
+
+            elif currentArgument in ("-m", "--My_file"):
+                print("Displaying file_name:", sys.argv[0])
+
+            elif currentArgument in ("-o", "--Output"):
+                print(("Enabling special output mode (% s)") % (currentValue))
+
+    except getopt.error as err:
+        # output error, and return with an error code
+        print(str(err))
+
     star = models.TOVProNeuElec(MIN_PRESSURE)
     if FULL_COMPUTATION is True:
         radii, masses, pressures = solve_range(
